@@ -1,10 +1,13 @@
 export const OPERATIONAL_LIMIT_USD = 500;
-export const REFERENCE_USD_BRL = 6;
-export const OPERATIONAL_LIMIT_BRL = OPERATIONAL_LIMIT_USD * REFERENCE_USD_BRL;
+export const FALLBACK_REFERENCE_USD_BRL = 5.12;
 export const PIX_BATCH_MAX_BRL = 2000;
 
-export function estimateUsd(valueBrl: number) {
-  return valueBrl / REFERENCE_USD_BRL;
+export function operationalLimitBrl(rate = FALLBACK_REFERENCE_USD_BRL) {
+  return OPERATIONAL_LIMIT_USD * rate;
+}
+
+export function estimateUsd(valueBrl: number, rate = FALLBACK_REFERENCE_USD_BRL) {
+  return valueBrl / rate;
 }
 
 export function calculatePixBatches(total: number) {
@@ -16,6 +19,6 @@ export function calculatePixBatches(total: number) {
     : base);
 }
 
-export function isHighValueOrderAllowed(total: number, itemCount: number) {
-  return total <= OPERATIONAL_LIMIT_BRL || itemCount === 1;
+export function isHighValueOrderAllowed(total: number, itemCount: number, rate = FALLBACK_REFERENCE_USD_BRL) {
+  return total <= operationalLimitBrl(rate) || itemCount === 1;
 }

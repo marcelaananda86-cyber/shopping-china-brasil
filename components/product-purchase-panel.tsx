@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Check, CircleDollarSign, CreditCard, Minus, PackageCheck, Plus, Scale, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
 import { priceToNumber, useCart } from "@/components/cart-provider";
-import { estimateUsd, OPERATIONAL_LIMIT_BRL, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
+import { estimateUsd, operationalLimitBrl, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
+import { useExchangeRate } from "@/components/exchange-rate-provider";
 
 type PurchaseProduct = {
   id: string;
@@ -16,12 +17,13 @@ type PurchaseProduct = {
 
 export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) {
   const { addItem } = useCart();
+  const exchangeRate = useExchangeRate();
   const [quantity, setQuantity] = useState(1);
   const [cep, setCep] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const available = !product.availability || /InStock/i.test(product.availability);
   const numericPrice = priceToNumber(product.price);
-  const itemAboveOperationalLimit = numericPrice !== null && numericPrice > OPERATIONAL_LIMIT_BRL;
+  const itemAboveOperationalLimit = numericPrice !== null && numericPrice > operationalLimitBrl(exchangeRate.usdBrl);
 
   function calculateDelivery(event: React.FormEvent) {
     event.preventDefault();
@@ -69,7 +71,7 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
         <Benefit icon={<ShieldCheck size={18} />} title="Compra protegida" text="Ambiente seguro" />
         <Benefit icon={<PackageCheck size={18} />} title="Produto original" text="Procedência garantida" />
       </div>
-      {numericPrice !== null ? <p className="mt-4 flex items-center gap-2 text-[11px] leading-4 text-slate-500"><Scale size={15} className="shrink-0 text-[#bd0811]" /> Valor estimado de US$ {estimateUsd(numericPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}; conversão e encargos confirmados no fechamento.</p> : null}
+      {numericPrice !== null ? <p className="mt-4 flex items-center gap-2 text-[11px] leading-4 text-slate-500"><Scale size={15} className="shrink-0 text-[#bd0811]" /> Valor estimado de US$ {estimateUsd(numericPrice, exchangeRate.usdBrl).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, com câmbio do site-base a R$ {exchangeRate.usdBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</p> : null}
     </div>
   );
 }

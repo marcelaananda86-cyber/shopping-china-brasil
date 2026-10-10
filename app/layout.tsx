@@ -7,6 +7,8 @@ import { CartProvider } from "@/components/cart-provider";
 import { CartDrawer } from "@/components/cart-drawer";
 import { ImportRulesBanner } from "@/components/import-rules-banner";
 import type { CategoryData } from "@/lib/shopping-china";
+import { ExchangeRateProvider } from "@/components/exchange-rate-provider";
+import { getSourceExchangeRate } from "@/lib/exchange-rate";
 
 export const metadata: Metadata = {
   title: {
@@ -20,21 +22,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const exchangeRate = await getSourceExchangeRate();
   return (
     <html lang="pt-BR">
       <body className="antialiased">
-        <CartProvider>
+        <ExchangeRateProvider initial={exchangeRate}><CartProvider>
           <SiteHeader categories={categoriesData as CategoryData[]} />
           <ImportRulesBanner />
           {children}
           <SiteFooter />
           <CartDrawer />
-        </CartProvider>
+        </CartProvider></ExchangeRateProvider>
       </body>
     </html>
   );

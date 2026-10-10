@@ -3,10 +3,12 @@
 import { AlertTriangle, CheckCircle2, CircleDollarSign, Minus, Plus, Scale, ShieldCheck, ShoppingBag, Trash2, Truck } from "lucide-react";
 import { formatMoney, priceToNumber, useCart } from "@/components/cart-provider";
 import { HardLink } from "@/components/hard-link";
-import { calculatePixBatches, estimateUsd, isHighValueOrderAllowed, OPERATIONAL_LIMIT_BRL, OPERATIONAL_LIMIT_USD, REFERENCE_USD_BRL } from "@/lib/commerce-rules";
+import { calculatePixBatches, estimateUsd, isHighValueOrderAllowed, operationalLimitBrl, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
+import { useExchangeRate } from "@/components/exchange-rate-provider";
 
 export function CartPageContent() {
   const { items, hydrated, subtotal, hasUnknownPrices, setQuantity, removeItem, clearCart } = useCart();
+  const exchangeRate = useExchangeRate();
 
   if (!hydrated) return <div className="h-96 animate-pulse rounded-3xl bg-slate-100" />;
   if (!items.length) return (
@@ -18,11 +20,12 @@ export function CartPageContent() {
     </div>
   );
 
-  const estimatedUsd = estimateUsd(subtotal);
-  const aboveOperationalLimit = subtotal > OPERATIONAL_LIMIT_BRL;
+  const estimatedUsd = estimateUsd(subtotal, exchangeRate.usdBrl);
+  const operationalLimit = operationalLimitBrl(exchangeRate.usdBrl);
+  const aboveOperationalLimit = subtotal > operationalLimit;
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
-  const highValueOrderAllowed = isHighValueOrderAllowed(subtotal, itemCount);
-  const limitProgress = Math.min(100, (subtotal / OPERATIONAL_LIMIT_BRL) * 100);
+  const highValueOrderAllowed = isHighValueOrderAllowed(subtotal, itemCount, exchangeRate.usdBrl);
+  const limitProgress = Math.min(100, (subtotal / operationalLimit) * 100);
   const pixBatches = calculatePixBatches(subtotal);
 
   const whatsappMessage = encodeURIComponent([
@@ -58,7 +61,7 @@ export function CartPageContent() {
           <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#bd0811]">Política de compra internacional</p><h2 className="mt-1 text-xl font-bold text-[#002055]">Limite operacional por pedido</h2></div>
           <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold ${!highValueOrderAllowed ? "bg-red-50 text-[#bd0811]" : aboveOperationalLimit ? "bg-blue-50 text-[#002055]" : "bg-green-50 text-[#168c45]"}`}>{!highValueOrderAllowed ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}{!highValueOrderAllowed ? "Separe os produtos" : aboveOperationalLimit ? "PIX em lotes habilitado" : "Pagamento único"}</span>
         </div>
-        <div className="mt-5 flex items-end justify-between gap-3"><div><p className="text-2xl font-bold text-[#002055]">US$ {estimatedUsd.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p><p className="mt-1 text-xs text-slate-500">Estimativa com dólar referencial a {formatMoney(REFERENCE_USD_BRL)}</p></div><p className="text-right text-xs text-slate-500">Limite atual<br /><strong className="text-[#002055]">US$ {OPERATIONAL_LIMIT_USD}</strong></p></div>
+        <div className="mt-5 flex items-end justify-between gap-3"><div><p className="text-2xl font-bold text-[#002055]">US$ {estimatedUsd.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p><p className="mt-1 text-xs text-slate-500">Cotação do site-base: {formatMoney(exchangeRate.usdBrl)} por US$ 1{exchangeRate.fallback ? " (último valor disponível)" : ""}</p></div><p className="text-right text-xs text-slate-500">Limite atual<br /><strong className="text-[#002055]">US$ {OPERATIONAL_LIMIT_USD}</strong></p></div>
         <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full transition-all ${aboveOperationalLimit ? "bg-[#002055]" : "bg-[#168c45]"}`} style={{ width: `${limitProgress}%` }} /></div>
         <p className={`mt-4 rounded-2xl p-4 text-xs leading-5 ${!highValueOrderAllowed ? "border border-red-200 bg-red-50 text-[#bd0811]" : aboveOperationalLimit ? "bg-blue-50 text-[#002055]" : "bg-slate-50 text-slate-600"}`}>{!highValueOrderAllowed ? <><strong>Este pedido ultrapassa US$ 500 e contém mais de uma unidade.</strong> Acima da cota, é permitido somente um produto por pedido. Remova os demais itens, finalize o primeiro e faça uma nova compra para o próximo produto.</> : aboveOperationalLimit ? <><strong>Este pedido ultrapassa a faixa padrão de US$ 500 e contém um único produto, portanto a compra está liberada.</strong> O pagamento será organizado em lotes de PIX conforme o plano abaixo, mantendo o valor total do pedido nos documentos comerciais, fiscais e aduaneiros.</> : <>Seu pedido está na faixa de pagamento único. A cotação e os encargos definitivos serão confirmados antes do pagamento.</>}</p>
       </section>

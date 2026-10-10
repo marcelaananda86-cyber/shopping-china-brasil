@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { CircleDollarSign, ExternalLink, FileCheck2, Landmark, Scale, ShieldCheck, X } from "lucide-react";
-import { OPERATIONAL_LIMIT_USD, PIX_BATCH_MAX_BRL, REFERENCE_USD_BRL } from "@/lib/commerce-rules";
+import { OPERATIONAL_LIMIT_USD, PIX_BATCH_MAX_BRL } from "@/lib/commerce-rules";
 import { formatMoney } from "@/components/cart-provider";
+import { useExchangeRate } from "@/components/exchange-rate-provider";
 
 export function ImportRulesBanner() {
   const [open, setOpen] = useState(false);
+  const exchangeRate = useExchangeRate();
 
   useEffect(() => {
     if (!open) return;
@@ -44,7 +46,7 @@ export function ImportRulesBanner() {
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <RuleCard icon={<Landmark />} title="Faixa padrão do pedido" text={`Pedidos de até US$ ${OPERATIONAL_LIMIT_USD} seguem com pagamento único. A conversão exibida no carrinho usa cotação referencial de ${formatMoney(REFERENCE_USD_BRL)} por dólar e será confirmada no fechamento.`} />
+              <RuleCard icon={<Landmark />} title="Faixa padrão do pedido" text={`Pedidos de até US$ ${OPERATIONAL_LIMIT_USD} seguem com pagamento único. A conversão usa a cotação publicada pelo site-base, atualmente ${formatMoney(exchangeRate.usdBrl)} por dólar${exchangeRate.fallback ? ", com o último valor disponível em contingência" : ""}.`} />
               <RuleCard icon={<CircleDollarSign />} title="PIX em parcelas" text={`O pagamento pode ser organizado em parcelas PIX de até ${formatMoney(PIX_BATCH_MAX_BRL)}. Isso facilita o pagamento, mas não muda o preço total da compra, da nota ou da declaração aduaneira.`} />
               <RuleCard icon={<FileCheck2 />} title="Um produto por pedido" text="Acima de US$ 500, o carrinho deve conter somente uma unidade de um produto. Para comprar outro item, finalize-o em um novo pedido separado." />
             </div>
