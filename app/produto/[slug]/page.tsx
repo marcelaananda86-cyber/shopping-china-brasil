@@ -11,8 +11,31 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const product = await getProductDetail(slug);
   if (!product) notFound();
+  const numericPrice = product.price ? Number(product.price.replace(/[^\d,]/g, "").replace(",", ".")) : null;
+  const available = /InStock|in_stock/i.test(product.availability);
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    sku: product.id,
+    ...(product.gtin ? { gtin: product.gtin } : {}),
+    ...(product.mpn ? { mpn: product.mpn } : {}),
+    ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
+    image: product.images,
+    description: product.description,
+    offers: numericPrice === null ? undefined : {
+      "@type": "Offer",
+      price: numericPrice.toFixed(2),
+      priceCurrency: "BRL",
+      availability: available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+      shippingDetails: { "@type": "OfferShippingDetails", deliveryTime: { "@type": "ShippingDeliveryTime", transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 20, unitCode: "DAY" } } },
+      hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "BR", returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: 7, returnMethod: "https://schema.org/ReturnByMail" },
+    },
+  };
   return (
     <main className="page-shell py-6 md:py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema).replace(/</g, "\\u003c") }} />
       <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
         <HardLink href="/" className="hover:text-[#bd0811]">Início</HardLink>
         {product.breadcrumbs.map((item) => <span key={item.path} className="flex items-center gap-2"><span>/</span><HardLink href={`/categoria/${item.path}`} className="hover:text-[#bd0811]">{item.name}</HardLink></span>)}
@@ -38,7 +61,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <Info icon={<BadgeCheck />} title="Produto original" text="Procedência Shopping China" />
         <Info icon={<MapPin />} title="Estoque verificado" text="Filial Ciudad del Este" />
         <Info icon={<ShieldCheck />} title="Compra protegida" text="Carrinho seguro e persistente" />
-        <Info icon={<Truck />} title="Entrega no Brasil" text="Cálculo por CEP no pedido" />
+        <Info icon={<Truck />} title="Entrega no Brasil" text="Receba em até 20 dias" />
       </section>
 
       {product.description || product.specifications.length ? <section className="mt-8 grid gap-10 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-10 lg:grid-cols-[1.15fr_.85fr]">

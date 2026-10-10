@@ -14,7 +14,7 @@ export default function Home() {
         <div className="page-shell grid grid-cols-1 divide-y divide-slate-200 py-2 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <TrustItem icon={<BadgeCheck />} title="Produtos originais" text="As melhores marcas do mundo" />
           <TrustItem icon={<MapPin />} title="Ciudad del Este" text="Estoque da filial principal" />
-          <TrustItem icon={<ShieldCheck />} title="Compra segura" text="Nova operação Brasil em preparação" />
+          <TrustItem icon={<ShieldCheck />} title="Compra segura" text="Conta e pedidos protegidos" />
         </div>
       </section>
 

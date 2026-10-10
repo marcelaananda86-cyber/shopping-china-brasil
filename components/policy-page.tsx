@@ -1,0 +1,7 @@
+import { CheckCircle2 } from "lucide-react";
+
+export type PolicySection = { title: string; paragraphs?: string[]; items?: string[] };
+
+export function PolicyPage({ eyebrow, title, intro, sections, updated = "10 de outubro de 2026" }: { eyebrow: string; title: string; intro: string; sections: PolicySection[]; updated?: string }) {
+  return <main className="page-shell py-8 md:py-12"><header className="rounded-3xl bg-[#002055] px-6 py-9 text-white md:px-10"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#fcb92c]">{eyebrow}</p><h1 className="mt-2 text-3xl font-bold md:text-4xl">{title}</h1><p className="mt-4 max-w-3xl text-sm leading-7 text-white/75">{intro}</p><p className="mt-5 text-xs text-white/50">Última atualização: {updated}</p></header><div className="mx-auto mt-7 max-w-4xl space-y-5">{sections.map((section) => <section key={section.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"><h2 className="text-xl font-bold text-[#002055]">{section.title}</h2>{section.paragraphs?.map((text) => <p key={text} className="mt-3 text-sm leading-7 text-slate-600">{text}</p>)}{section.items?.length ? <ul className="mt-4 grid gap-3">{section.items.map((item) => <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#168c45]" /><span>{item}</span></li>)}</ul> : null}</section>)}</div></main>;
+}

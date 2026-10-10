@@ -115,7 +115,7 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
               ) : null}
             </form>
             <div className="flex shrink-0 items-center gap-1 lg:gap-2">
-              <a href="#contato" className="header-action hidden lg:inline-flex"><UserRound size={20} /><span>Ajuda</span></a>
+              <HardLink href="/entrar" className="header-action"><UserRound size={20} /><span className="hidden lg:inline">Conta</span></HardLink>
               <button type="button" onClick={openCart} className="header-action relative" aria-label={`Abrir carrinho com ${itemCount} itens`}><ShoppingBag size={20} /><span className="hidden sm:inline">Carrinho</span>{itemCount > 0 ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#fcb92c] px-1 text-[10px] font-bold text-[#002055]">{itemCount > 99 ? "99+" : itemCount}</span> : null}</button>
             </div>
           </div>

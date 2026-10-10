@@ -73,7 +73,7 @@ export function CartDrawer() {
               })}
             </div>
             <div className="border-t border-slate-200 bg-slate-50 px-5 py-5">
-              <div className="flex items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-wide text-slate-500">Subtotal</p><p className="mt-1 text-2xl font-bold text-[#002055]">{formatMoney(subtotal)}</p></div><p className="pb-1 text-xs text-slate-500">Frete calculado depois</p></div>
+              <div className="flex items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-wide text-slate-500">Subtotal</p><p className="mt-1 text-2xl font-bold text-[#002055]">{formatMoney(subtotal)}</p></div><p className="pb-1 text-right text-xs text-slate-500">Entrega em<br />até 20 dias</p></div>
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-3 text-[11px]"><span className="font-semibold text-[#002055]">US$ {estimateUsd(subtotal).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimados</span><span className="text-slate-500">Limite US$ {OPERATIONAL_LIMIT_USD}</span></div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${aboveOperationalLimit ? "bg-[#002055]" : "bg-[#168c45]"}`} style={{ width: `${progress}%` }} /></div>

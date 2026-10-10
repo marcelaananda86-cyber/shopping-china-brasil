@@ -23,11 +23,14 @@ export type ProductDetailData = {
   currency: string;
   availability: string;
   brand: string | null;
+  gtin: string | null;
+  mpn: string | null;
   brandImage: string | null;
   images: string[];
   description: string;
   specifications: string[];
   breadcrumbs: { name: string; path: string }[];
+  syncedAt?: string | null;
 };
 
 const SOURCE = "https://www.shoppingchina.com.br";
@@ -63,6 +66,10 @@ export async function getCategoryPage(path: string, page = 1) {
 }
 
 export async function getProductDetail(slug: string): Promise<ProductDetailData | null> {
+  const databaseProduct = await getSupabaseProductDetail(slug);
+  if (databaseProduct) return databaseProduct;
+  if (process.env.CATALOG_SUPABASE_REQUIRED === "true") return null;
+
   const response = await fetch(`${SOURCE}/produto/${encodeURIComponent(slug)}`, {
     headers: { "user-agent": "ShoppingChinaBrasilMirror/1.0" },
     next: { revalidate: 1800 },
@@ -115,12 +122,56 @@ export async function getProductDetail(slug: string): Promise<ProductDetailData 
     currency: String(offers?.priceCurrency ?? "BRL"),
     availability: String(offers?.availability ?? ""),
     brand: typeof brand?.name === "string" ? brand.name : null,
+    gtin: getStructuredString(structured, ["gtin14", "gtin13", "gtin12", "gtin8", "gtin"]),
+    mpn: getStructuredString(structured, ["mpn", "sku"]),
     brandImage: brandImage ? decodeHtml(brandImage) : null,
     images: images.length ? images : (typeof structured?.image === "string" ? [structured.image] : []),
     description,
     specifications,
     breadcrumbs,
   };
+}
+
+async function getSupabaseProductDetail(slug: string): Promise<ProductDetailData | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+  const fields = "id,slug,title,description,brand,gtin,mpn,image_url,additional_image_urls,price_cents,currency,availability,synced_at";
+  try {
+    const response = await fetch(`${url}/rest/v1/products?slug=eq.${encodeURIComponent(slug)}&active=eq.true&select=${fields}&limit=1`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      next: { revalidate: 300 },
+    });
+    if (!response.ok) return null;
+    const [row] = await response.json() as Array<Record<string, unknown>>;
+    if (!row) return null;
+    const priceCents = Number(row.price_cents);
+    const images = [row.image_url, ...(Array.isArray(row.additional_image_urls) ? row.additional_image_urls : [])].filter((value): value is string => typeof value === "string" && Boolean(value));
+    return {
+      id: String(row.id),
+      slug: String(row.slug),
+      title: String(row.title),
+      price: Number.isFinite(priceCents) ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(priceCents / 100) : null,
+      currency: String(row.currency ?? "BRL"),
+      availability: String(row.availability ?? "out_of_stock"),
+      brand: row.brand ? String(row.brand) : null,
+      gtin: row.gtin ? String(row.gtin) : null,
+      mpn: row.mpn ? String(row.mpn) : null,
+      brandImage: null,
+      images,
+      description: String(row.description ?? ""),
+      specifications: [],
+      breadcrumbs: [],
+      syncedAt: row.synced_at ? String(row.synced_at) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getStructuredString(value: Record<string, unknown> | null, keys: string[]) {
+  for (const key of keys) if (typeof value?.[key] === "string" && value[key]) return String(value[key]);
+  return null;
 }
 
 function stripHtml(value: string) {

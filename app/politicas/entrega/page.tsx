@@ -1,0 +1,9 @@
+import type { Metadata } from "next";
+import { PolicyPage } from "@/components/policy-page";
+export const metadata: Metadata = { title: "Política de entrega" };
+export default function Page() { return <PolicyPage eyebrow="Envio para o Brasil" title="Política de entrega" intro="Nosso compromisso é entregar o pedido no endereço informado em até 20 dias corridos após a confirmação do pagamento." sections={[
+  { title: "Prazo de entrega", paragraphs: ["O prazo máximo é de 20 dias corridos, contado a partir da confirmação integral do pagamento. O prazo estimado e o custo do frete são apresentados antes da confirmação do pedido."], items: ["Separação e conferência do produto antes do envio.", "Transporte internacional, processamento aplicável e entrega no endereço brasileiro.", "Atualizações de status na área Minha Conta e envio do código de rastreamento quando disponível."] },
+  { title: "Origem e cobertura", paragraphs: ["Os produtos são comercializados pela operação Shopping China Brasil e podem ser expedidos a partir de Ciudad del Este, Paraguai, para endereços atendidos no Brasil. A origem da expedição é informada de forma transparente no pedido."] },
+  { title: "Recebimento", items: ["É necessário informar endereço completo e manter uma pessoa apta a receber o pedido.", "A transportadora poderá solicitar assinatura ou documento do recebedor.", "Danos aparentes, embalagem violada ou item divergente devem ser registrados e comunicados imediatamente ao atendimento."] },
+  { title: "Atraso ou não entrega", paragraphs: ["Se o pedido não for entregue dentro do prazo máximo de 20 dias, o cliente poderá escolher entre novo prazo expressamente aceito ou cancelamento com restituição integral dos valores pagos. O atendimento fornecerá protocolo e acompanhará a solução."] },
+]} />; }
