@@ -16,13 +16,9 @@ Deno.serve(async (request) => {
 
   const requestedLimit = Number(new URL(request.url).searchParams.get("limit") ?? 100);
   const limit = Math.min(100, Math.max(1, requestedLimit));
-  const now = new Date().toISOString();
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("id,slug,source_url")
-    .lte("next_sync_at", now)
-    .order("next_sync_at", { ascending: true })
-    .limit(limit);
+  const { data: products, error } = await supabase.rpc("claim_products_for_sync", {
+    batch_size: limit,
+  });
   if (error) return json({ error: error.message }, 500);
 
   const results = await runWithConcurrency(products ?? [], 10, syncProduct);
@@ -65,7 +61,7 @@ async function syncProduct(product: { id: string; slug: string; source_url: stri
     });
     if (!response.ok) throw new Error(`source_http_${response.status}`);
     const html = await response.text();
-    const structured = readProductJsonLd(html);
+    const structured = readProductJsonLd(html) ?? readProductHtmlFallback(html);
     if (!structured) throw new Error("product_json_ld_missing");
     const offer = Array.isArray(structured.offers) ? structured.offers[0] : structured.offers;
     const price = Number(offer?.price);
@@ -120,6 +116,32 @@ function readProductJsonLd(html: string): Record<string, any> | null {
   return null;
 }
 
+function readProductHtmlFallback(html: string): Record<string, any> | null {
+  const productStart = html.indexOf("<!--PRODUCT-->");
+  const productEnd = html.indexOf("<!--RELATED-->", productStart);
+  if (productStart < 0 || productEnd < 0) return null;
+  const main = html.slice(productStart, productEnd);
+  const title = stripHtml(main.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i)?.[1] ?? "");
+  const image = decodeHtml(main.match(/<img[^>]+id=["']first-img["'][^>]+src=["']([^"']+)/i)?.[1] ?? "");
+  const priceText = main.match(/R\$\s*([\d.]+,\d{2})/i)?.[1] ?? "";
+  const price = Number(priceText.replaceAll(".", "").replace(",", "."));
+  if (!title || !image || !Number.isFinite(price) || price <= 0) return null;
+  const brandBlock = main.match(/Marca:[\s\S]*?<img[^>]+alt=["']([^"']+)/i)?.[1];
+  const descriptionBlock = main.match(/>Descrição<\/h6>([\s\S]*?)<div class=\s*["']sc-text-grey/i)?.[1] ?? "";
+  return {
+    "@type": "Product",
+    name: title,
+    description: stripHtml(descriptionBlock) || title,
+    image,
+    brand: brandBlock ? { name: decodeHtml(brandBlock) } : undefined,
+    offers: {
+      price,
+      priceCurrency: "BRL",
+      availability: "http://schema.org/InStock",
+    },
+  };
+}
+
 function findGtin(value: Record<string, any>) {
   return value.gtin14 ?? value.gtin13 ?? value.gtin12 ?? value.gtin8 ?? value.gtin ?? null;
 }
@@ -132,7 +154,21 @@ function normalizeAvailability(value: string) {
 }
 
 function stripHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return decodeHtml(value.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+}
+
+function decodeHtml(value: string) {
+  return value
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&nbsp;", " ")
+    .replaceAll("&aacute;", "á")
+    .replaceAll("&eacute;", "é")
+    .replaceAll("&iacute;", "í")
+    .replaceAll("&oacute;", "ó")
+    .replaceAll("&uacute;", "ú")
+    .replaceAll("&ccedil;", "ç");
 }
 
 function json(body: unknown, status = 200) {

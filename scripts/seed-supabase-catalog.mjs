@@ -18,6 +18,7 @@ const featured = new Map(
 const seenSlugs = new Set();
 const uniqueCatalog = [...new Map(catalog.map((product) => [String(product.id), product])).values()]
   .filter((product) => {
+    if (!String(product.id ?? "").trim() || !String(product.slug ?? "").trim() || !String(product.title ?? "").trim()) return false;
     if (seenSlugs.has(product.slug)) return false;
     seenSlugs.add(product.slug);
     return true;
