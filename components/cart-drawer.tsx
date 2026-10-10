@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { AlertTriangle, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { formatMoney, priceToNumber, useCart } from "@/components/cart-provider";
 import { HardLink } from "@/components/hard-link";
-import { estimateUsd, OPERATIONAL_LIMIT_BRL, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
+import { estimateUsd, isHighValueOrderAllowed, OPERATIONAL_LIMIT_BRL, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
 
 export function CartDrawer() {
   const { items, drawerOpen, closeCart, itemCount, subtotal, hasUnknownPrices, removeItem, setQuantity } = useCart();
@@ -23,6 +23,7 @@ export function CartDrawer() {
 
   if (!drawerOpen) return null;
   const aboveOperationalLimit = subtotal > OPERATIONAL_LIMIT_BRL;
+  const highValueOrderAllowed = isHighValueOrderAllowed(subtotal, itemCount);
   const progress = Math.min(100, (subtotal / OPERATIONAL_LIMIT_BRL) * 100);
 
   return (
@@ -76,8 +77,9 @@ export function CartDrawer() {
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-3 text-[11px]"><span className="font-semibold text-[#002055]">US$ {estimateUsd(subtotal).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimados</span><span className="text-slate-500">Limite US$ {OPERATIONAL_LIMIT_USD}</span></div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${aboveOperationalLimit ? "bg-[#002055]" : "bg-[#168c45]"}`} style={{ width: `${progress}%` }} /></div>
-                {aboveOperationalLimit ? <p className="mt-2 text-[11px] leading-4 text-[#002055]">Pagamento em lotes disponível. Você pode seguir normalmente.</p> : null}
+                {aboveOperationalLimit ? <p className={`mt-2 text-[11px] leading-4 ${highValueOrderAllowed ? "text-[#002055]" : "text-[#bd0811]"}`}>{highValueOrderAllowed ? "Pagamento em lotes disponível para este produto único." : "Acima de US$ 500, deixe somente uma unidade de um produto neste pedido."}</p> : null}
               </div>
+              {!highValueOrderAllowed ? <div className="mt-3 flex gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-5 text-[#bd0811]"><AlertTriangle size={17} className="mt-0.5 shrink-0" /><p><strong>Separe sua compra.</strong> Finalize um produto por vez e crie outro pedido para o próximo item.</p></div> : null}
               {hasUnknownPrices ? <p className="mt-2 text-xs text-[#bd0811]">Alguns itens dependem de confirmação de preço.</p> : null}
               <HardLink href="/carrinho" onClick={closeCart} className="mt-5 flex w-full items-center justify-center rounded-full bg-[#bd0811] px-6 py-4 text-sm font-bold text-white shadow-lg shadow-red-950/10 hover:bg-[#97070e]">Revisar e finalizar pedido</HardLink>
               <button type="button" onClick={closeCart} className="mt-2 w-full py-2 text-sm font-semibold text-[#002055] hover:text-[#bd0811]">Continuar comprando</button>

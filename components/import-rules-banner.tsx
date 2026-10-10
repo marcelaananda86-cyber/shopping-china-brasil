@@ -25,7 +25,7 @@ export function ImportRulesBanner() {
       <div className="border-b border-amber-200 bg-[#fff7df] text-[#002055]">
         <div className="page-shell flex min-h-11 items-center justify-center gap-2 py-2 text-center text-xs sm:text-sm">
           <ShieldCheck size={17} className="shrink-0 text-[#bd0811]" />
-          <span><strong>Compras para o Brasil:</strong> pedidos padrão até US$ {OPERATIONAL_LIMIT_USD}; produtos de maior valor com PIX em lotes.</span>
+          <span><strong>Compras para o Brasil:</strong> até US$ {OPERATIONAL_LIMIT_USD} por pedido; acima da cota, somente 1 produto com PIX em lotes.</span>
           <button type="button" onClick={() => setOpen(true)} className="shrink-0 font-bold text-[#bd0811] underline decoration-[#bd0811]/30 underline-offset-4 hover:decoration-[#bd0811]">Entenda</button>
         </div>
       </div>
@@ -40,18 +40,18 @@ export function ImportRulesBanner() {
 
           <div className="px-5 py-6 sm:px-8 sm:py-8">
             <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
-              <div className="flex gap-3"><Scale className="mt-0.5 shrink-0 text-[#168c45]" /><div><h3 className="font-bold text-[#002055]">Operação autorizada para vendas ao Brasil</h3><p className="mt-2 text-sm leading-6 text-slate-600">A operação Shopping China Brasil segue a autorização judicial e fiscal informada pela empresa. A faixa padrão é de <strong>US$ 500 por pedido</strong>. Produtos unitários de maior valor também podem ser comprados normalmente, com o pagamento organizado em lotes de PIX.</p></div></div>
+              <div className="flex gap-3"><Scale className="mt-0.5 shrink-0 text-[#168c45]" /><div><h3 className="font-bold text-[#002055]">Operação autorizada para vendas ao Brasil</h3><p className="mt-2 text-sm leading-6 text-slate-600">A operação Shopping China Brasil segue a autorização judicial e fiscal informada pela empresa. A faixa padrão é de <strong>US$ 500 por pedido</strong>. Acima dessa cota, a compra é permitida somente quando o pedido contém <strong>uma unidade de um único produto</strong>, com pagamento organizado em lotes de PIX.</p></div></div>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <RuleCard icon={<Landmark />} title="Faixa padrão do pedido" text={`Pedidos de até US$ ${OPERATIONAL_LIMIT_USD} seguem com pagamento único. A conversão exibida no carrinho usa cotação referencial de ${formatMoney(REFERENCE_USD_BRL)} por dólar e será confirmada no fechamento.`} />
               <RuleCard icon={<CircleDollarSign />} title="PIX em parcelas" text={`O pagamento pode ser organizado em parcelas PIX de até ${formatMoney(PIX_BATCH_MAX_BRL)}. Isso facilita o pagamento, mas não muda o preço total da compra, da nota ou da declaração aduaneira.`} />
-              <RuleCard icon={<FileCheck2 />} title="Produtos de maior valor" text="Um produto unitário acima de US$ 500 não bloqueia a compra. O carrinho cria o plano de PIX em lotes e o pedido continua pelo fluxo normal." />
+              <RuleCard icon={<FileCheck2 />} title="Um produto por pedido" text="Acima de US$ 500, o carrinho deve conter somente uma unidade de um produto. Para comprar outro item, finalize-o em um novo pedido separado." />
             </div>
 
             <div className="mt-6 rounded-2xl bg-[#002055] p-5 text-white sm:p-6">
               <h3 className="font-bold">Exemplo simples</h3>
-              <p className="mt-2 text-sm leading-6 text-white/75">Um produto de <strong className="text-white">R$ 6.000</strong> pode, se aprovado, ser pago em <strong className="text-white">3 PIX de R$ 2.000</strong>. Para fins comerciais, fiscais e aduaneiros ele continua sendo uma única compra de R$ 6.000. O parcelamento não transforma o produto em três compras menores.</p>
+              <p className="mt-2 text-sm leading-6 text-white/75">Um iPhone de <strong className="text-white">R$ 6.000</strong>, sozinho no carrinho, pode ser pago em <strong className="text-white">3 PIX de R$ 2.000</strong>. Um iPhone e um PS5 juntos no mesmo pedido não são permitidos acima da cota: cada produto deve ser finalizado em uma compra separada.</p>
             </div>
 
             <div className="mt-6 flex gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-600"><ShieldCheck className="mt-0.5 shrink-0 text-[#002055]" /><p><strong className="text-[#002055]">Compra integralmente documentada.</strong> Mesmo quando o cliente paga em vários PIX, o sistema mantém o valor total do produto e do pedido nos registros comerciais, fiscais e aduaneiros.</p></div>

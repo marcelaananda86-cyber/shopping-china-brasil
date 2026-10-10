@@ -41,7 +41,7 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
         {available ? "Disponível para compra" : "Consulte a disponibilidade"}
       </div>
 
-      {itemAboveOperationalLimit ? <div className="mt-4 flex gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-[#002055]"><CircleDollarSign size={19} className="mt-0.5 shrink-0" /><p><strong>Compra autorizada com PIX em lotes.</strong> Este produto ultrapassa a faixa padrão de US$ {OPERATIONAL_LIMIT_USD}, mas pode ser comprado normalmente. O carrinho montará o plano de pagamento e manterá o valor integral na documentação.</p></div> : null}
+      {itemAboveOperationalLimit ? <div className="mt-4 flex gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-[#002055]"><CircleDollarSign size={19} className="mt-0.5 shrink-0" /><p><strong>Compra autorizada com PIX em lotes.</strong> Este produto ultrapassa a faixa padrão de US$ {OPERATIONAL_LIMIT_USD} e deve ser comprado sozinho, com uma unidade por pedido. O carrinho montará o plano de pagamento e manterá o valor integral na documentação.</p></div> : null}
 
       <div className="mt-5 flex flex-wrap items-end gap-3">
         <div>

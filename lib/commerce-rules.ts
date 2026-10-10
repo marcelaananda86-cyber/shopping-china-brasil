@@ -15,3 +15,7 @@ export function calculatePixBatches(total: number) {
     ? Number((total - base * (count - 1)).toFixed(2))
     : base);
 }
+
+export function isHighValueOrderAllowed(total: number, itemCount: number) {
+  return total <= OPERATIONAL_LIMIT_BRL || itemCount === 1;
+}

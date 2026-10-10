@@ -65,7 +65,7 @@ await evaluate(`(() => {
 
 const ready = await waitFor("document.body.innerText.includes('PIX em lotes habilitado') && document.body.innerText.includes('Finalizar pedido')");
 await new Promise((resolve) => setTimeout(resolve, 600));
-const state = await evaluate(`({
+const singleItemState = await evaluate(`({
   ready: document.body.innerText.includes('PIX em lotes habilitado'),
   finalizesNormally: document.body.innerText.includes('Finalizar pedido'),
   analysisRemoved: !document.body.innerText.toLowerCase().includes('análise'),
@@ -75,7 +75,37 @@ const state = await evaluate(`({
 
 const screenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
 await writeFile("/tmp/shopping-china-high-value-cart.png", Buffer.from(screenshot.data, "base64"));
-console.log(JSON.stringify({ ...state, screenshot: "/tmp/shopping-china-high-value-cart.png" }, null, 2));
+
+await evaluate(`(() => {
+  const items = JSON.parse(localStorage.getItem('shopping-china-brasil-cart-v1'));
+  items.push({
+    id: 'segundo-produto',
+    slug: 'ps5-teste-fluxo',
+    title: 'PLAYSTATION 5 — TESTE DA REGRA',
+    image: '/assets/shopping-china/logo-mark.webp',
+    price: 'R$ 4.000,00',
+    quantity: 1
+  });
+  localStorage.setItem('shopping-china-brasil-cart-v1', JSON.stringify(items));
+  location.reload();
+  return true;
+})()`);
+
+const blockedReady = await waitFor("document.body.innerText.includes('Separe os produtos') && document.body.innerText.includes('Separe em pedidos individuais')");
+await new Promise((resolve) => setTimeout(resolve, 600));
+const multipleItemsState = await evaluate(`({
+  blocked: document.body.innerText.includes('Não é possível finalizar este carrinho'),
+  asksForSeparateOrders: document.body.innerText.includes('faça pedidos separados'),
+  finalizationRemoved: ![...document.querySelectorAll('a')].some(node => node.textContent?.includes('Finalizar pedido')),
+  pixPlanHidden: !document.body.innerText.includes('Plano sugerido de PIX')
+})`);
+const blockedScreenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+await writeFile("/tmp/shopping-china-high-value-cart-blocked.png", Buffer.from(blockedScreenshot.data, "base64"));
+
+console.log(JSON.stringify({
+  singleItem: { ...singleItemState, screenshot: "/tmp/shopping-china-high-value-cart.png" },
+  multipleItems: { ...multipleItemsState, screenshot: "/tmp/shopping-china-high-value-cart-blocked.png" }
+}, null, 2));
 socket.close();
 
-if (!ready || !state.finalizesNormally || !state.analysisRemoved || state.pixBatches !== 3 || state.values.length < 3) process.exitCode = 1;
+if (!ready || !singleItemState.finalizesNormally || !singleItemState.analysisRemoved || singleItemState.pixBatches !== 3 || singleItemState.values.length < 3 || !blockedReady || !multipleItemsState.blocked || !multipleItemsState.asksForSeparateOrders || !multipleItemsState.finalizationRemoved || !multipleItemsState.pixPlanHidden) process.exitCode = 1;
