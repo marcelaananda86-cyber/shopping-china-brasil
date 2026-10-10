@@ -3,6 +3,8 @@ import "./globals.css";
 import categoriesData from "@/public/data/categories.json";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { CartProvider } from "@/components/cart-provider";
+import { CartDrawer } from "@/components/cart-drawer";
 import type { CategoryData } from "@/lib/shopping-china";
 
 export const metadata: Metadata = {
@@ -25,9 +27,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="antialiased">
-        <SiteHeader categories={categoriesData as CategoryData[]} />
-        {children}
-        <SiteFooter />
+        <CartProvider>
+          <SiteHeader categories={categoriesData as CategoryData[]} />
+          {children}
+          <SiteFooter />
+          <CartDrawer />
+        </CartProvider>
       </body>
     </html>
   );
