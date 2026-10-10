@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CartProvider } from "@/components/cart-provider";
 import { CartDrawer } from "@/components/cart-drawer";
+import { ImportRulesBanner } from "@/components/import-rules-banner";
 import type { CategoryData } from "@/lib/shopping-china";
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className="antialiased">
         <CartProvider>
           <SiteHeader categories={categoriesData as CategoryData[]} />
+          <ImportRulesBanner />
           {children}
           <SiteFooter />
           <CartDrawer />

@@ -47,6 +47,9 @@ async function waitFor(expression, timeout = 20000) {
 await command("Page.enable");
 await command("Runtime.enable");
 await waitFor("document.readyState === 'complete' && !!document.querySelector('h1')");
+await evaluate("localStorage.removeItem('shopping-china-brasil-cart-v1'); location.reload(); true");
+await waitFor("document.readyState === 'complete' && !!document.querySelector('h1')");
+await new Promise((resolve) => setTimeout(resolve, 800));
 
 const productBefore = await evaluate(`({
   title: document.querySelector('h1')?.textContent?.trim(),
@@ -68,7 +71,7 @@ const cartReady = await waitFor("location.pathname === '/carrinho' && document.b
 const cartState = await evaluate(`({
   url: location.href,
   items: document.querySelectorAll('main article').length,
-  hasFinalize: document.body.innerText.includes('Finalizar pedido'),
+  hasAction: document.body.innerText.includes('Finalizar pedido') || document.body.innerText.includes('Solicitar análise da compra'),
   subtotal: [...document.querySelectorAll('aside span')].map(node => node.textContent).find(text => text?.includes('R$'))
 })`);
 
@@ -100,4 +103,4 @@ const result = { productBefore, drawerOpened, drawerState, cartReady, cartState,
 console.log(JSON.stringify(result, null, 2));
 socket.close();
 
-if (!productBefore.imageLoaded || !productBefore.hasAdd || !productBefore.hasBuy || !drawerOpened || drawerState.stored < 1 || !cartReady || !cartState.hasFinalize || !suggestionsReady || !searchPageReady || searchState.results < 1) process.exitCode = 1;
+if (!productBefore.imageLoaded || !productBefore.hasAdd || !productBefore.hasBuy || !drawerOpened || drawerState.stored < 1 || !cartReady || !cartState.hasAction || !suggestionsReady || !searchPageReady || searchState.results < 1) process.exitCode = 1;

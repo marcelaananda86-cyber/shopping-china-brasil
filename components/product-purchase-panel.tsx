@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CreditCard, Minus, PackageCheck, Plus, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
-import { useCart } from "@/components/cart-provider";
+import { AlertTriangle, Check, CreditCard, Minus, PackageCheck, Plus, Scale, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
+import { priceToNumber, useCart } from "@/components/cart-provider";
+import { estimateUsd, OPERATIONAL_LIMIT_BRL, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
 
 type PurchaseProduct = {
   id: string;
@@ -19,6 +20,8 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
   const [cep, setCep] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const available = !product.availability || /InStock/i.test(product.availability);
+  const numericPrice = priceToNumber(product.price);
+  const itemAboveOperationalLimit = numericPrice !== null && numericPrice > OPERATIONAL_LIMIT_BRL;
 
   function calculateDelivery(event: React.FormEvent) {
     event.preventDefault();
@@ -38,6 +41,8 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
         {available ? "Disponível para compra" : "Consulte a disponibilidade"}
       </div>
 
+      {itemAboveOperationalLimit ? <div className="mt-4 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950"><AlertTriangle size={19} className="mt-0.5 shrink-0" /><p><strong>Item acima do limite automático de US$ {OPERATIONAL_LIMIT_USD}.</strong> Você pode adicioná-lo ao carrinho para solicitar uma compra assistida. O pagamento poderá ser parcelado em PIX, mas o valor integral do produto será mantido na documentação fiscal e aduaneira.</p></div> : null}
+
       <div className="mt-5 flex flex-wrap items-end gap-3">
         <div>
           <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Quantidade</label>
@@ -47,9 +52,9 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
             <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="h-full px-4 text-slate-500 hover:bg-slate-50" aria-label="Aumentar quantidade"><Plus size={17} /></button>
           </div>
         </div>
-        <button type="button" onClick={() => addItem(product, quantity)} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#bd0811] px-5 text-sm font-bold text-[#bd0811] transition hover:bg-red-50"><ShoppingCart size={19} /> Adicionar</button>
+        <button type="button" onClick={() => addItem(product, quantity)} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#bd0811] px-5 text-sm font-bold text-[#bd0811] transition hover:bg-red-50"><ShoppingCart size={19} /> {itemAboveOperationalLimit ? "Adicionar para análise" : "Adicionar"}</button>
       </div>
-      <button type="button" onClick={buyNow} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[#bd0811] px-6 py-4 text-base font-bold text-white shadow-lg shadow-red-950/15 transition hover:-translate-y-0.5 hover:bg-[#97070e] hover:shadow-xl"><CreditCard size={20} /> Comprar agora</button>
+      <button type="button" onClick={buyNow} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[#bd0811] px-6 py-4 text-base font-bold text-white shadow-lg shadow-red-950/15 transition hover:-translate-y-0.5 hover:bg-[#97070e] hover:shadow-xl"><CreditCard size={20} /> {itemAboveOperationalLimit ? "Ver opções de compra" : "Comprar agora"}</button>
 
       <form onSubmit={calculateDelivery} className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <label htmlFor="product-cep" className="flex items-center gap-2 text-sm font-bold text-[#002055]"><Truck size={18} className="text-[#bd0811]" /> Calcule a entrega para o Brasil</label>
@@ -64,6 +69,7 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
         <Benefit icon={<ShieldCheck size={18} />} title="Compra protegida" text="Ambiente seguro" />
         <Benefit icon={<PackageCheck size={18} />} title="Produto original" text="Procedência garantida" />
       </div>
+      {numericPrice !== null ? <p className="mt-4 flex items-center gap-2 text-[11px] leading-4 text-slate-500"><Scale size={15} className="shrink-0 text-[#bd0811]" /> Valor estimado de US$ {estimateUsd(numericPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}; conversão e encargos confirmados no fechamento.</p> : null}
     </div>
   );
 }
