@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, MapPin, MessageCircle, ShieldCheck } from "lucide-react";
 import { ProductGallery } from "@/components/product-gallery";
+import { HardLink } from "@/components/hard-link";
 import { getProductDetail } from "@/lib/shopping-china";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +15,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <main className="page-shell py-8 md:py-12">
       <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
-        <Link href="/" className="hover:text-[#bd0811]">Início</Link>
-        {product.breadcrumbs.map((item) => <span key={item.path} className="flex items-center gap-2"><span>/</span><Link href={`/categoria/${item.path}`} className="hover:text-[#bd0811]">{item.name}</Link></span>)}
+        <HardLink href="/" className="hover:text-[#bd0811]">Início</HardLink>
+        {product.breadcrumbs.map((item) => <span key={item.path} className="flex items-center gap-2"><span>/</span><HardLink href={`/categoria/${item.path}`} className="hover:text-[#bd0811]">{item.name}</HardLink></span>)}
       </nav>
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
         <ProductGallery images={product.images} title={product.title} />

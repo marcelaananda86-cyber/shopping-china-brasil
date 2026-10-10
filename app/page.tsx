@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { ArrowRight, BadgeCheck, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import homeData from "@/public/data/home.json";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { ProductCard } from "@/components/product-card";
+import { HardLink } from "@/components/hard-link";
 import type { ProductCardData } from "@/lib/shopping-china";
 
 export default function Home() {
@@ -22,13 +22,13 @@ export default function Home() {
         <SectionHeading eyebrow="Explore" title="Setores mais visitados" description="Encontre rapidamente os departamentos preferidos dos nossos clientes." />
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {homeData.popular.map((category, index) => (
-            <Link key={category.slug} href={`/categoria/${category.slug}`} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <HardLink key={category.slug} href={`/categoria/${category.slug}`} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
               <div className="aspect-square overflow-hidden rounded-xl bg-slate-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`/assets/shopping-china/popular-${index + 1}.webp`} alt={category.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
               </div>
               <h3 className="px-2 py-3 text-center text-sm font-bold uppercase text-[#002055]">{category.name}</h3>
-            </Link>
+            </HardLink>
           ))}
         </div>
       </section>
@@ -41,7 +41,7 @@ export default function Home() {
             <span className="rounded-2xl bg-[#fcb92c] p-3 text-[#002055]"><Sparkles size={26} /></span>
             <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#fcb92c]">Novidade</p><h2 className="mt-1 text-2xl font-bold md:text-3xl">O catálogo completo agora tem uma nova casa</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">Mais de 27 mil produtos organizados para pesquisa e navegação, com preços apresentados em reais.</p></div>
           </div>
-          <Link href="/categoria/eletronicos" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-[#002055] hover:bg-[#fcb92c]">Explorar catálogo <ArrowRight size={18} /></Link>
+          <HardLink href="/categoria/eletronicos" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-[#002055] hover:bg-[#fcb92c]">Explorar catálogo <ArrowRight size={18} /></HardLink>
         </div>
       </section>
 

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import type { ProductCardData } from "@/lib/shopping-china";
+import { HardLink } from "@/components/hard-link";
 
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
-    <Link href={`/produto/${product.slug}`} className="product-card group">
+    <HardLink href={`/produto/${product.slug}`} className="product-card group">
       <div className="product-image-wrap">
         {product.discount ? <span className="discount-badge">-{product.discount}%</span> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -18,6 +18,6 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           </span>
         </div>
       </div>
-    </Link>
+    </HardLink>
   );
 }

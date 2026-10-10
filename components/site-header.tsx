@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import type { CategoryData } from "@/lib/shopping-china";
+import { HardLink } from "@/components/hard-link";
 
 type CatalogItem = { id: string; slug: string; title: string };
 
@@ -40,12 +40,12 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
         <div className="bg-[#001a46] text-white">
           <div className="page-shell flex h-[72px] items-center gap-3 md:gap-6">
             <button type="button" className="icon-button" onClick={() => setMenuOpen(true)} aria-label="Abrir categorias"><Menu size={24} /></button>
-            <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Shopping China Brasil — início">
+            <HardLink href="/" className="flex shrink-0 items-center gap-2" aria-label="Shopping China Brasil — início">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/assets/shopping-china/logo-mark.webp" alt="" className="h-10 w-12 object-contain brightness-0 invert" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/assets/shopping-china/logo-word.webp" alt="Shopping China" className="hidden h-9 w-auto object-contain brightness-0 invert sm:block" />
-            </Link>
+            </HardLink>
             <div ref={searchBox} className="relative mx-auto min-w-0 w-full max-w-3xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#002055]" size={20} />
               <input
@@ -61,21 +61,21 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
                   {catalog === null ? <p className="p-5 text-sm text-slate-500">Carregando catálogo…</p> : null}
                   {catalog && results.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhum produto encontrado.</p> : null}
                   {results.map((item) => (
-                    <Link key={item.id} href={`/produto/${item.slug}`} onClick={() => setSearchOpen(false)} className="block border-b border-slate-100 px-5 py-3 text-sm font-medium text-[#002055] last:border-0 hover:bg-slate-50">{item.title}</Link>
+                    <HardLink key={item.id} href={`/produto/${item.slug}`} onClick={() => setSearchOpen(false)} className="block border-b border-slate-100 px-5 py-3 text-sm font-medium text-[#002055] last:border-0 hover:bg-slate-50">{item.title}</HardLink>
                   ))}
                   {results.length ? <div className="bg-slate-50 px-5 py-2 text-xs text-slate-500">Pesquisa em 27.134 produtos espelhados</div> : null}
                 </div>
               ) : null}
             </div>
             <div className="hidden shrink-0 items-center gap-2 lg:flex">
-              <Link href="#contato" className="header-action"><UserRound size={20} /><span>Ajuda</span></Link>
+              <a href="#contato" className="header-action"><UserRound size={20} /><span>Ajuda</span></a>
               <button type="button" className="header-action opacity-60" aria-label="Carrinho em breve" title="Carrinho será ativado na próxima etapa"><ShoppingBag size={20} /><span>Carrinho</span></button>
             </div>
           </div>
         </div>
         <nav className="hidden border-b border-slate-200 bg-white xl:block">
           <div className="page-shell flex h-11 items-center justify-between gap-3 overflow-hidden text-[13px] font-semibold uppercase text-[#002055]">
-            {categories.slice(0, 9).map((category) => <Link key={category.slug} href={`/categoria/${category.slug}`} className="whitespace-nowrap hover:text-[#bd0811]">{category.name}</Link>)}
+            {categories.slice(0, 9).map((category) => <HardLink key={category.slug} href={`/categoria/${category.slug}`} className="whitespace-nowrap hover:text-[#bd0811]">{category.name}</HardLink>)}
             <button type="button" onClick={() => setMenuOpen(true)} className="flex items-center gap-1 whitespace-nowrap text-[#bd0811]">Todas <ChevronDown size={15} /></button>
           </div>
         </nav>
@@ -94,11 +94,11 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
                 <details key={category.slug} className="group rounded-xl border border-transparent open:border-slate-200 open:bg-slate-50">
                   <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-3 font-semibold text-[#002055] hover:bg-slate-50">
                     {category.icon ? <img src={category.icon} alt="" className="h-7 w-7 rounded-full border border-slate-200 object-contain" /> : null}
-                    <Link href={`/categoria/${category.slug}`} onClick={() => setMenuOpen(false)} className="flex-1">{category.name}</Link>
+                    <HardLink href={`/categoria/${category.slug}`} onClick={() => setMenuOpen(false)} className="flex-1">{category.name}</HardLink>
                     <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
                   </summary>
                   <div className="grid gap-1 px-4 pb-3">
-                    {category.children.map((child) => <Link key={child.slug} href={`/categoria/${category.slug}/${child.slug}`} onClick={() => setMenuOpen(false)} className="rounded px-2 py-1.5 text-sm text-slate-600 hover:bg-white hover:text-[#bd0811]">{child.name}</Link>)}
+                    {category.children.map((child) => <HardLink key={child.slug} href={`/categoria/${category.slug}/${child.slug}`} onClick={() => setMenuOpen(false)} className="rounded px-2 py-1.5 text-sm text-slate-600 hover:bg-white hover:text-[#bd0811]">{child.name}</HardLink>)}
                   </div>
                 </details>
               ))}
