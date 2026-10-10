@@ -75,8 +75,8 @@ export function CartDrawer() {
               <div className="flex items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-wide text-slate-500">Subtotal</p><p className="mt-1 text-2xl font-bold text-[#002055]">{formatMoney(subtotal)}</p></div><p className="pb-1 text-xs text-slate-500">Frete calculado depois</p></div>
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-3 text-[11px]"><span className="font-semibold text-[#002055]">US$ {estimateUsd(subtotal).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimados</span><span className="text-slate-500">Limite US$ {OPERATIONAL_LIMIT_USD}</span></div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${aboveOperationalLimit ? "bg-amber-500" : "bg-[#168c45]"}`} style={{ width: `${progress}%` }} /></div>
-                {aboveOperationalLimit ? <p className="mt-2 text-[11px] leading-4 text-amber-800">Acima do limite automático: este pedido precisará de análise assistida.</p> : null}
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${aboveOperationalLimit ? "bg-[#002055]" : "bg-[#168c45]"}`} style={{ width: `${progress}%` }} /></div>
+                {aboveOperationalLimit ? <p className="mt-2 text-[11px] leading-4 text-[#002055]">Pagamento em lotes disponível. Você pode seguir normalmente.</p> : null}
               </div>
               {hasUnknownPrices ? <p className="mt-2 text-xs text-[#bd0811]">Alguns itens dependem de confirmação de preço.</p> : null}
               <HardLink href="/carrinho" onClick={closeCart} className="mt-5 flex w-full items-center justify-center rounded-full bg-[#bd0811] px-6 py-4 text-sm font-bold text-white shadow-lg shadow-red-950/10 hover:bg-[#97070e]">Revisar e finalizar pedido</HardLink>

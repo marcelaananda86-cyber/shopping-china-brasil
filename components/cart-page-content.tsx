@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, CircleDollarSign, Minus, Plus, Scale, ShieldCheck, ShoppingBag, Trash2, Truck } from "lucide-react";
+import { CheckCircle2, CircleDollarSign, Minus, Plus, Scale, ShieldCheck, ShoppingBag, Trash2, Truck } from "lucide-react";
 import { formatMoney, priceToNumber, useCart } from "@/components/cart-provider";
 import { HardLink } from "@/components/hard-link";
 import { calculatePixBatches, estimateUsd, OPERATIONAL_LIMIT_BRL, OPERATIONAL_LIMIT_USD, REFERENCE_USD_BRL } from "@/lib/commerce-rules";
@@ -24,7 +24,7 @@ export function CartPageContent() {
   const pixBatches = calculatePixBatches(subtotal);
 
   const whatsappMessage = encodeURIComponent([
-    aboveOperationalLimit ? "Olá! Quero solicitar uma análise assistida deste pedido:" : "Olá! Quero finalizar este pedido:",
+    "Olá! Quero finalizar este pedido:",
     ...items.map((item) => `• ${item.quantity}x ${item.title} (${item.id}) — ${item.price ?? "consultar"}`),
     `Subtotal informado: ${formatMoney(subtotal)}`,
     `Estimativa referencial: US$ ${estimatedUsd.toFixed(2)}`,
@@ -54,11 +54,11 @@ export function CartPageContent() {
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#bd0811]">Política de compra internacional</p><h2 className="mt-1 text-xl font-bold text-[#002055]">Limite operacional por pedido</h2></div>
-          <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold ${aboveOperationalLimit ? "bg-amber-100 text-amber-900" : "bg-green-50 text-[#168c45]"}`}>{aboveOperationalLimit ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}{aboveOperationalLimit ? "Análise necessária" : "Dentro do limite"}</span>
+          <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold ${aboveOperationalLimit ? "bg-blue-50 text-[#002055]" : "bg-green-50 text-[#168c45]"}`}><CheckCircle2 size={16} />{aboveOperationalLimit ? "PIX em lotes habilitado" : "Pagamento único"}</span>
         </div>
         <div className="mt-5 flex items-end justify-between gap-3"><div><p className="text-2xl font-bold text-[#002055]">US$ {estimatedUsd.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p><p className="mt-1 text-xs text-slate-500">Estimativa com dólar referencial a {formatMoney(REFERENCE_USD_BRL)}</p></div><p className="text-right text-xs text-slate-500">Limite atual<br /><strong className="text-[#002055]">US$ {OPERATIONAL_LIMIT_USD}</strong></p></div>
-        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full transition-all ${aboveOperationalLimit ? "bg-amber-500" : "bg-[#168c45]"}`} style={{ width: `${limitProgress}%` }} /></div>
-        <p className={`mt-4 rounded-2xl p-4 text-xs leading-5 ${aboveOperationalLimit ? "bg-amber-50 text-amber-950" : "bg-slate-50 text-slate-600"}`}>{aboveOperationalLimit ? <><strong>Este carrinho ultrapassa o limite automático de US$ 500.</strong> Os itens permanecerão no carrinho, mas a compra será revisada para definir declaração, tributos e modalidade de entrega corretos. Não dividimos artificialmente uma mesma importação.</> : <>Seu pedido está dentro do limite operacional automático. A cotação e os encargos definitivos serão confirmados antes do pagamento.</>}</p>
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full transition-all ${aboveOperationalLimit ? "bg-[#002055]" : "bg-[#168c45]"}`} style={{ width: `${limitProgress}%` }} /></div>
+        <p className={`mt-4 rounded-2xl p-4 text-xs leading-5 ${aboveOperationalLimit ? "bg-blue-50 text-[#002055]" : "bg-slate-50 text-slate-600"}`}>{aboveOperationalLimit ? <><strong>Este pedido ultrapassa a faixa padrão de US$ 500, mas a compra está liberada.</strong> O pagamento será organizado em lotes de PIX conforme o plano abaixo, mantendo o valor total do pedido nos documentos comerciais, fiscais e aduaneiros.</> : <>Seu pedido está na faixa de pagamento único. A cotação e os encargos definitivos serão confirmados antes do pagamento.</>}</p>
       </section>
 
       {pixBatches.length > 1 ? <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
@@ -73,7 +73,7 @@ export function CartPageContent() {
         <div className="mt-5 space-y-3 border-y border-slate-200 py-5 text-sm"><div className="flex justify-between text-slate-500"><span>Produtos</span><span>{formatMoney(subtotal)}</span></div><div className="flex justify-between text-slate-500"><span>Entrega</span><span>Calculada por CEP</span></div></div>
         <div className="flex items-end justify-between py-5"><span className="font-semibold text-[#002055]">Subtotal</span><span className="text-2xl font-bold text-[#002055]">{formatMoney(subtotal)}</span></div>
         {hasUnknownPrices ? <p className="mb-4 rounded-xl bg-red-50 p-3 text-xs leading-5 text-[#bd0811]">Há itens com preço sob consulta; o valor final será confirmado pelo atendimento.</p> : null}
-        <a href={`https://api.whatsapp.com/send?phone=595981701701&text=${whatsappMessage}`} target="_blank" rel="noreferrer" className="flex w-full items-center justify-center rounded-full bg-[#bd0811] px-6 py-4 text-center text-sm font-bold text-white shadow-lg shadow-red-950/10 hover:bg-[#97070e]">{aboveOperationalLimit ? "Solicitar análise da compra" : "Finalizar pedido"}</a>
+        <a href={`https://api.whatsapp.com/send?phone=595981701701&text=${whatsappMessage}`} target="_blank" rel="noreferrer" className="flex w-full items-center justify-center rounded-full bg-[#bd0811] px-6 py-4 text-center text-sm font-bold text-white shadow-lg shadow-red-950/10 hover:bg-[#97070e]">Finalizar pedido</a>
         <HardLink href="/" className="mt-3 flex w-full items-center justify-center py-2 text-sm font-semibold text-[#002055] hover:text-[#bd0811]">Continuar comprando</HardLink>
         <div className="mt-5 grid gap-3 border-t border-slate-100 pt-5"><p className="flex items-center gap-2 text-xs text-slate-500"><ShieldCheck size={17} className="text-[#168c45]" /> Compra protegida e produtos originais</p><p className="flex items-center gap-2 text-xs text-slate-500"><Truck size={17} className="text-[#168c45]" /> Entrega nacional confirmada no atendimento</p></div>
       </aside>

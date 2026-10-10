@@ -25,7 +25,7 @@ export function ImportRulesBanner() {
       <div className="border-b border-amber-200 bg-[#fff7df] text-[#002055]">
         <div className="page-shell flex min-h-11 items-center justify-center gap-2 py-2 text-center text-xs sm:text-sm">
           <ShieldCheck size={17} className="shrink-0 text-[#bd0811]" />
-          <span><strong>Compras para o Brasil:</strong> limite operacional de US$ {OPERATIONAL_LIMIT_USD} por pedido e opção de PIX em parcelas.</span>
+          <span><strong>Compras para o Brasil:</strong> pedidos padrão até US$ {OPERATIONAL_LIMIT_USD}; produtos de maior valor com PIX em lotes.</span>
           <button type="button" onClick={() => setOpen(true)} className="shrink-0 font-bold text-[#bd0811] underline decoration-[#bd0811]/30 underline-offset-4 hover:decoration-[#bd0811]">Entenda</button>
         </div>
       </div>
@@ -39,14 +39,14 @@ export function ImportRulesBanner() {
           </div>
 
           <div className="px-5 py-6 sm:px-8 sm:py-8">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <div className="flex gap-3"><Scale className="mt-0.5 shrink-0 text-[#bd0811]" /><div><h3 className="font-bold text-[#002055]">Primeiro, uma distinção importante</h3><p className="mt-2 text-sm leading-6 text-slate-600">A cota de <strong>US$ 500</strong> prevista pela Receita Federal refere-se à bagagem acompanhada de viajantes que entram no Brasil por via terrestre, fluvial ou lacustre. Ela não é, por si só, o limite geral de uma compra enviada por e-commerce. Encomendas internacionais possuem regras próprias, declaração aduaneira e tributação.</p></div></div>
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <div className="flex gap-3"><Scale className="mt-0.5 shrink-0 text-[#168c45]" /><div><h3 className="font-bold text-[#002055]">Operação autorizada para vendas ao Brasil</h3><p className="mt-2 text-sm leading-6 text-slate-600">A operação Shopping China Brasil segue a autorização judicial e fiscal informada pela empresa. A faixa padrão é de <strong>US$ 500 por pedido</strong>. Produtos unitários de maior valor também podem ser comprados normalmente, com o pagamento organizado em lotes de PIX.</p></div></div>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <RuleCard icon={<Landmark />} title="Limite operacional da loja" text={`Nesta fase, cada pedido automático fica limitado a US$ ${OPERATIONAL_LIMIT_USD}. A conversão exibida no carrinho usa uma cotação referencial de ${formatMoney(REFERENCE_USD_BRL)} por dólar e será confirmada no fechamento.`} />
+              <RuleCard icon={<Landmark />} title="Faixa padrão do pedido" text={`Pedidos de até US$ ${OPERATIONAL_LIMIT_USD} seguem com pagamento único. A conversão exibida no carrinho usa cotação referencial de ${formatMoney(REFERENCE_USD_BRL)} por dólar e será confirmada no fechamento.`} />
               <RuleCard icon={<CircleDollarSign />} title="PIX em parcelas" text={`O pagamento pode ser organizado em parcelas PIX de até ${formatMoney(PIX_BATCH_MAX_BRL)}. Isso facilita o pagamento, mas não muda o preço total da compra, da nota ou da declaração aduaneira.`} />
-              <RuleCard icon={<FileCheck2 />} title="Compra acima do limite" text="O pedido segue para análise assistida. Verificamos a modalidade de importação, os tributos e a documentação correta antes de confirmar a venda." />
+              <RuleCard icon={<FileCheck2 />} title="Produtos de maior valor" text="Um produto unitário acima de US$ 500 não bloqueia a compra. O carrinho cria o plano de PIX em lotes e o pedido continua pelo fluxo normal." />
             </div>
 
             <div className="mt-6 rounded-2xl bg-[#002055] p-5 text-white sm:p-6">
@@ -54,10 +54,10 @@ export function ImportRulesBanner() {
               <p className="mt-2 text-sm leading-6 text-white/75">Um produto de <strong className="text-white">R$ 6.000</strong> pode, se aprovado, ser pago em <strong className="text-white">3 PIX de R$ 2.000</strong>. Para fins comerciais, fiscais e aduaneiros ele continua sendo uma única compra de R$ 6.000. O parcelamento não transforma o produto em três compras menores.</p>
             </div>
 
-            <div className="mt-6 flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm leading-6 text-slate-600"><ShieldCheck className="mt-0.5 shrink-0 text-[#bd0811]" /><p><strong className="text-[#002055]">Não realizamos fracionamento artificial.</strong> Uma mesma compra não será dividida em encomendas para ocultar valor, evitar tributos ou contornar controles. Pedidos acima do limite são tratados pela modalidade aduaneira adequada.</p></div>
+            <div className="mt-6 flex gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-600"><ShieldCheck className="mt-0.5 shrink-0 text-[#002055]" /><p><strong className="text-[#002055]">Compra integralmente documentada.</strong> Mesmo quando o cliente paga em vários PIX, o sistema mantém o valor total do produto e do pedido nos registros comerciais, fiscais e aduaneiros.</p></div>
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
-              <p className="max-w-2xl text-xs leading-5 text-slate-500">As condições finais dependem do produto, do destino, do frete, da cotação aplicável e da modalidade de importação. O valor total é informado antes da confirmação.</p>
+              <p className="max-w-2xl text-xs leading-5 text-slate-500">A quantidade e o valor de cada PIX são apresentados no carrinho. Frete, cotação e encargos definitivos são informados antes da confirmação.</p>
               <div className="flex flex-wrap gap-3">
                 <a href="https://www.gov.br/receitafederal/pt-br/assuntos/aduana-e-comercio-exterior/manuais/remessas-postal-e-expressa/preciso-pagar-impostos-nas-compras-internacionais/quais-sao-os-impostos-devidos" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#002055] hover:text-[#bd0811]">Regras de encomendas <ExternalLink size={14} /></a>
                 <a href="https://www.gov.br/receitafederal/pt-br/assuntos/aduana-e-comercio-exterior/viagens-internacionais/guia-do-viajante" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#002055] hover:text-[#bd0811]">Guia do viajante <ExternalLink size={14} /></a>
