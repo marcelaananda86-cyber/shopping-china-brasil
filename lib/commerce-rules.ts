@@ -2,6 +2,25 @@ export const OPERATIONAL_LIMIT_USD = 500;
 export const FALLBACK_REFERENCE_USD_BRL = 5.12;
 export const PIX_BATCH_MAX_BRL = 2000;
 
+const SOUTH_STATES = new Set(["PR", "SC", "RS"]);
+const CENTRAL_STATES = new Set(["DF", "ES", "GO", "MG", "MS", "MT", "RJ", "SP"]);
+
+export function shippingPriceForState(state: string) {
+  const normalized = state.trim().toUpperCase();
+  if (SOUTH_STATES.has(normalized)) return 49.9;
+  if (CENTRAL_STATES.has(normalized)) return 79.9;
+  if (/^[A-Z]{2}$/.test(normalized)) return 94.9;
+  return null;
+}
+
+export function shippingRegionLabel(state: string) {
+  const normalized = state.trim().toUpperCase();
+  if (SOUTH_STATES.has(normalized)) return "Região Sul";
+  if (CENTRAL_STATES.has(normalized)) return "Sudeste e Centro-Oeste";
+  if (/^[A-Z]{2}$/.test(normalized)) return "Norte e Nordeste";
+  return "Informe o CEP";
+}
+
 export function operationalLimitBrl(rate = FALLBACK_REFERENCE_USD_BRL) {
   return OPERATIONAL_LIMIT_USD * rate;
 }

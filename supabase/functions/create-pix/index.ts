@@ -57,24 +57,39 @@ Deno.serve(async (request) => {
       if (product.stock > 0 && item.quantity > product.stock) throw new CheckoutError("insufficient_stock", `Quantidade indisponível para ${product.title}.`, 409);
       return { product, quantity: item.quantity };
     });
-    const totalCents = orderItems.reduce((total, item) => total + item.product.price_cents * item.quantity, 0);
+    const subtotalCents = orderItems.reduce((total, item) => total + item.product.price_cents * item.quantity, 0);
     const itemCount = orderItems.reduce((total, item) => total + item.quantity, 0);
-    if (totalCents <= 0) return json({ error: "invalid_total" }, 400);
+    if (subtotalCents <= 0) return json({ error: "invalid_total" }, 400);
+
+    const cepAddress = await lookupCep(input.shipping.zipCode);
+    if (!cepAddress) return json({ error: "invalid_cep", message: "Não foi possível validar o CEP informado." }, 400);
+    const shippingCents = shippingPriceCents(cepAddress.state);
+    const totalCents = subtotalCents + shippingCents;
+    const shipping = {
+      street: input.shipping.street.trim() || cepAddress.street,
+      number: input.shipping.number.trim(),
+      complement: input.shipping.complement?.trim() ?? "",
+      neighborhood: input.shipping.neighborhood.trim() || cepAddress.neighborhood,
+      city: cepAddress.city,
+      state: cepAddress.state,
+      zipCode: digits(input.shipping.zipCode),
+      region: cepAddress.region,
+    };
 
     const usdBrl = await getSourceExchangeRate();
-    if (totalCents > Math.round(500 * usdBrl * 100) && itemCount !== 1) {
+    if (subtotalCents > Math.round(500 * usdBrl * 100) && itemCount !== 1) {
       return json({ error: "high_value_multiple_items", message: "Acima de US$ 500, o pedido deve conter somente uma unidade de um produto." }, 409);
     }
 
     const { data: order, error: orderError } = await service.from("orders").insert({
       customer_id: user.id,
       status: "pending_payment",
-      subtotal_cents: totalCents,
-      shipping_cents: 0,
+      subtotal_cents: subtotalCents,
+      shipping_cents: shippingCents,
       total_cents: totalCents,
       payment_method: "pix",
       shipping_deadline_days: 20,
-      shipping_address: input.shipping,
+      shipping_address: shipping,
       customer_name: input.customer.name.trim(),
       customer_email: user.email,
       customer_phone: digits(input.customer.phone),
@@ -168,7 +183,7 @@ async function ensurePayments(service: ReturnType<typeof createClient>, orderId:
 
 async function readOrder(service: ReturnType<typeof createClient>, orderId: string, userId: string) {
   const { data: order, error } = await service.from("orders")
-    .select("id,status,total_cents,created_at,order_payments(batch_number,batch_count,amount_cents,provider_transaction_id,status,pix_copy_paste,pix_qr_code_base64,invoice_url,expires_at,paid_at)")
+    .select("id,status,subtotal_cents,shipping_cents,total_cents,created_at,order_payments(batch_number,batch_count,amount_cents,provider_transaction_id,status,pix_copy_paste,pix_qr_code_base64,invoice_url,expires_at,paid_at)")
     .eq("id", orderId).eq("customer_id", userId).single();
   if (error || !order) return json({ error: "order_not_found" }, 404);
   return json({ success: true, order: { ...order, payments: order.order_payments, order_payments: undefined } });
@@ -200,6 +215,29 @@ async function getSourceExchangeRate() {
     const rate = Number((value ?? "").replace(",", "."));
     return Number.isFinite(rate) && rate >= 1 && rate <= 20 ? rate : fallbackUsdBrl;
   } catch { return fallbackUsdBrl; }
+}
+
+async function lookupCep(value: string) {
+  const cep = digits(value);
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!response.ok) return null;
+    const data = await response.json() as JsonObject;
+    if (data.erro === true || !data.localidade || !data.uf) return null;
+    return {
+      street: String(data.logradouro ?? ""),
+      neighborhood: String(data.bairro ?? ""),
+      city: String(data.localidade),
+      state: String(data.uf).toUpperCase(),
+      region: String(data.regiao ?? ""),
+    };
+  } catch { return null; }
+}
+
+function shippingPriceCents(state: string) {
+  if (["PR", "SC", "RS"].includes(state)) return 4_990;
+  if (["DF", "ES", "GO", "MG", "MS", "MT", "RJ", "SP"].includes(state)) return 7_990;
+  return 9_490;
 }
 
 function cleanUtm(value: CheckoutInput["utm"]) {
