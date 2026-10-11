@@ -28,14 +28,6 @@ export function CartPageContent() {
   const limitProgress = Math.min(100, (subtotal / operationalLimit) * 100);
   const pixBatches = calculatePixBatches(subtotal);
 
-  const whatsappMessage = encodeURIComponent([
-    "Olá! Quero finalizar este pedido:",
-    ...items.map((item) => `• ${item.quantity}x ${item.title} (${item.id}) — ${item.price ?? "consultar"}`),
-    `Subtotal informado: ${formatMoney(subtotal)}`,
-    `Estimativa referencial: US$ ${estimatedUsd.toFixed(2)}`,
-    pixBatches.length > 1 ? `Sugestão de pagamento: ${pixBatches.length} PIX (${pixBatches.map(formatMoney).join(" + ")})` : "",
-  ].join("\n"));
-
   return (
     <div className="grid items-start gap-7 lg:grid-cols-[1fr_390px]">
       <div className="space-y-5">
@@ -78,7 +70,7 @@ export function CartPageContent() {
         <div className="mt-5 space-y-3 border-y border-slate-200 py-5 text-sm"><div className="flex justify-between text-slate-500"><span>Produtos</span><span>{formatMoney(subtotal)}</span></div><div className="flex justify-between text-slate-500"><span>Entrega</span><span>Em até 20 dias</span></div></div>
         <div className="flex items-end justify-between py-5"><span className="font-semibold text-[#002055]">Subtotal</span><span className="text-2xl font-bold text-[#002055]">{formatMoney(subtotal)}</span></div>
         {hasUnknownPrices ? <p className="mb-4 rounded-xl bg-red-50 p-3 text-xs leading-5 text-[#bd0811]">Há itens com preço sob consulta; o valor final será confirmado pelo atendimento.</p> : null}
-        {highValueOrderAllowed ? <a href={`https://api.whatsapp.com/send?phone=595981701701&text=${whatsappMessage}`} target="_blank" rel="noreferrer" className="flex w-full items-center justify-center rounded-full bg-[#bd0811] px-6 py-4 text-center text-sm font-bold text-white shadow-lg shadow-red-950/10 hover:bg-[#97070e]">Finalizar pedido</a> : <><div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-5 text-[#bd0811]"><strong>Não é possível finalizar este carrinho.</strong> Mantenha apenas uma unidade de um produto e faça pedidos separados para os demais.</div><button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-center rounded-full bg-slate-300 px-6 py-4 text-center text-sm font-bold text-slate-600">Separe em pedidos individuais</button></>}
+        {highValueOrderAllowed ? <HardLink href="/checkout" className="flex w-full items-center justify-center rounded-full bg-[#bd0811] px-6 py-4 text-center text-sm font-bold text-white shadow-lg shadow-red-950/10 hover:bg-[#97070e]">Ir para o checkout</HardLink> : <><div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-5 text-[#bd0811]"><strong>Não é possível finalizar este carrinho.</strong> Mantenha apenas uma unidade de um produto e faça pedidos separados para os demais.</div><button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-center rounded-full bg-slate-300 px-6 py-4 text-center text-sm font-bold text-slate-600">Separe em pedidos individuais</button></>}
         <HardLink href="/" className="mt-3 flex w-full items-center justify-center py-2 text-sm font-semibold text-[#002055] hover:text-[#bd0811]">Continuar comprando</HardLink>
         <div className="mt-5 grid gap-3 border-t border-slate-100 pt-5"><p className="flex items-center gap-2 text-xs text-slate-500"><ShieldCheck size={17} className="text-[#168c45]" /> Compra protegida e produtos originais</p><p className="flex items-center gap-2 text-xs text-slate-500"><Truck size={17} className="text-[#168c45]" /> Entrega no Brasil em até 20 dias</p></div>
       </aside>

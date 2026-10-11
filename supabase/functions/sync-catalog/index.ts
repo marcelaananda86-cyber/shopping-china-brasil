@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+type JsonObject = Record<string, unknown>;
+
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -63,13 +65,14 @@ async function syncProduct(product: { id: string; slug: string; source_url: stri
     const html = await response.text();
     const structured = readProductJsonLd(html) ?? readProductHtmlFallback(html);
     if (!structured) throw new Error("product_json_ld_missing");
-    const offer = Array.isArray(structured.offers) ? structured.offers[0] : structured.offers;
+    const offerValue = Array.isArray(structured.offers) ? structured.offers[0] : structured.offers;
+    const offer = isJsonObject(offerValue) ? offerValue : undefined;
     const price = Number(offer?.price);
     if (!Number.isFinite(price) || price <= 0) throw new Error("invalid_price");
     const availability = normalizeAvailability(String(offer?.availability ?? ""));
     const imageList = (Array.isArray(structured.image) ? structured.image : [structured.image])
       .filter((value): value is string => typeof value === "string" && Boolean(value));
-    const brand = typeof structured.brand === "object" ? structured.brand?.name : structured.brand;
+    const brand = isJsonObject(structured.brand) ? structured.brand.name : structured.brand;
     const currentTime = new Date();
     const { error } = await supabase.from("products").update({
       title: String(structured.name ?? product.slug),
@@ -102,13 +105,13 @@ async function syncProduct(product: { id: string; slug: string; source_url: stri
   }
 }
 
-function readProductJsonLd(html: string): Record<string, any> | null {
+function readProductJsonLd(html: string): JsonObject | null {
   for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
       const value = JSON.parse(match[1]);
       const entries = Array.isArray(value) ? value : value?.["@graph"] ?? [value];
-      const product = entries.find((entry: any) => entry?.["@type"] === "Product");
-      if (product) return product;
+      const product = entries.find((entry: unknown) => isJsonObject(entry) && entry["@type"] === "Product");
+      if (isJsonObject(product)) return product;
     } catch {
       // Some legacy pages contain malformed JSON-LD; the row is retried later.
     }
@@ -116,7 +119,7 @@ function readProductJsonLd(html: string): Record<string, any> | null {
   return null;
 }
 
-function readProductHtmlFallback(html: string): Record<string, any> | null {
+function readProductHtmlFallback(html: string): JsonObject | null {
   const productStart = html.indexOf("<!--PRODUCT-->");
   const productEnd = html.indexOf("<!--RELATED-->", productStart);
   if (productStart < 0 || productEnd < 0) return null;
@@ -142,8 +145,12 @@ function readProductHtmlFallback(html: string): Record<string, any> | null {
   };
 }
 
-function findGtin(value: Record<string, any>) {
+function findGtin(value: JsonObject) {
   return value.gtin14 ?? value.gtin13 ?? value.gtin12 ?? value.gtin8 ?? value.gtin ?? null;
+}
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function normalizeAvailability(value: string) {
