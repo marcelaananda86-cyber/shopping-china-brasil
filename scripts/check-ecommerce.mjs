@@ -71,7 +71,7 @@ const cartReady = await waitFor("location.pathname === '/carrinho' && document.b
 const cartState = await evaluate(`({
   url: location.href,
   items: document.querySelectorAll('main article').length,
-  hasAction: document.body.innerText.includes('Ir para o checkout'),
+  hasAction: document.body.innerText.includes('Entrar para comprar'),
   subtotal: [...document.querySelectorAll('aside span')].map(node => node.textContent).find(text => text?.includes('R$'))
 })`);
 

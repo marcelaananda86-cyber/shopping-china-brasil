@@ -63,11 +63,11 @@ await evaluate(`(() => {
   return true;
 })()`);
 
-const ready = await waitFor("document.body.innerText.includes('PIX em lotes habilitado') && document.body.innerText.includes('Ir para o checkout')");
+const ready = await waitFor("document.body.innerText.includes('PIX em lotes habilitado') && document.body.innerText.includes('Entrar para comprar')");
 await new Promise((resolve) => setTimeout(resolve, 600));
 const singleItemState = await evaluate(`({
   ready: document.body.innerText.includes('PIX em lotes habilitado'),
-  finalizesNormally: document.body.innerText.includes('Ir para o checkout'),
+  finalizesNormally: document.body.innerText.includes('Entrar para comprar'),
   analysisRemoved: !document.body.innerText.toLowerCase().includes('análise'),
   pixBatches: [...document.querySelectorAll('span')].filter(node => /^PIX \\d+ de \\d+$/.test(node.textContent?.trim() ?? '')).length,
   values: [...document.querySelectorAll('strong')].map(node => node.textContent?.trim()).filter(text => text === 'R$ 2.000,00')
@@ -96,7 +96,7 @@ await new Promise((resolve) => setTimeout(resolve, 600));
 const multipleItemsState = await evaluate(`({
   blocked: document.body.innerText.includes('Não é possível finalizar este carrinho'),
   asksForSeparateOrders: document.body.innerText.includes('faça pedidos separados'),
-  finalizationRemoved: ![...document.querySelectorAll('a')].some(node => node.textContent?.includes('Ir para o checkout')),
+  finalizationRemoved: ![...document.querySelectorAll('a')].some(node => node.textContent?.includes('Entrar para comprar')),
   pixPlanHidden: !document.body.innerText.includes('Plano sugerido de PIX')
 })`);
 const blockedScreenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });

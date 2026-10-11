@@ -44,91 +44,45 @@ async function waitFor(expression, timeout = 20000) {
 
 await command("Page.enable");
 await command("Runtime.enable");
-await command("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false });
-await waitFor(`document.readyState === 'complete' && location.origin === '${new URL(baseUrl).origin}'`);
-await evaluate(`(() => {
-  localStorage.removeItem('shopping-china-brasil-checkout-v1');
-  localStorage.setItem('shopping-china-brasil-cart-v1', JSON.stringify([{
-    id: '1071316', slug: 'tenis-nike-io7747400-court-vision-low-next-nature-masculino-1071316',
-    title: 'TÊNIS NIKE COURT VISION LOW NEXT NATURE MASCULINO', image: '/assets/shopping-china/logo-mark.webp',
-    price: 'R$ 322,56', quantity: 1
-  }]));
-  location.reload(); return true;
-})()`);
-
-const ready = await waitFor("document.body.innerText.includes('Pagamento exclusivamente via PIX') && document.body.innerText.includes('Revisar dados para pagar com PIX')");
-await new Promise((resolve) => setTimeout(resolve, 500));
-const initial = await evaluate(`({
-  pixOnly: document.body.innerText.toLowerCase().includes('única forma disponível') && document.body.innerText.includes('não é possível pagar com cartão'),
-  delivery: document.body.innerText.includes('em até 20 dias'),
-  total: document.body.innerText.includes('R$ 322,56'),
-  inputs: document.querySelectorAll('input, select').length
+await command("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+const redirected = await waitFor("location.pathname === '/entrar' && document.body.innerText.includes('Conta necessária')");
+const login = await evaluate(`({
+  path: location.pathname,
+  next: new URLSearchParams(location.search).get('next'),
+  google: document.body.innerText.includes('Continuar com Google'),
+  email: !!document.querySelector('input[name="email"]'),
+  password: !!document.querySelector('input[name="password"]'),
+  accountRequired: document.body.innerText.includes('Compra somente com conta'),
+  googleReady: ![...document.querySelectorAll('button')].find(button => button.textContent.includes('Continuar com Google'))?.disabled
 })`);
-
-const desktop = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
-await writeFile("/tmp/shopping-china-checkout-desktop.png", Buffer.from(desktop.data, "base64"));
+const screenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+await writeFile("/tmp/shopping-china-login-required.png", Buffer.from(screenshot.data, "base64"));
 
 await evaluate(`(() => {
-  const values = {
-    name: 'Cliente Shopping China', email: 'cliente@example.com', cpf: '52998224725', phone: '45999998888',
-    cep: '85851000', street: 'Avenida Brasil', number: '1000', complement: 'Apto 12',
-    neighborhood: 'Centro', city: 'Foz do Iguaçu', state: 'PR'
-  };
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-  for (const [name, value] of Object.entries(values)) {
-    const field = document.querySelector('[name="' + name + '"]');
-    if (field.tagName === 'SELECT') {
-      field.value = value;
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      setter.call(field, value);
-      field.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }));
-    }
-  }
-  document.querySelector('[name="accepted"]').click();
-  document.querySelector('main form').requestSubmit();
+  localStorage.setItem('shopping-china-brasil-cart-v1', JSON.stringify([{
+    id: 'auth-test', slug: 'auth-test', title: 'PRODUTO PARA TESTE DE AUTENTICAÇÃO',
+    image: '/assets/shopping-china/logo-mark.webp', price: 'R$ 322,56', quantity: 1
+  }]));
+  location.assign('${baseUrl}/carrinho');
   return true;
 })()`);
-
-const submitted = await waitFor("document.body.innerText.includes('Checkout pronto para o PIX')");
-const completed = await evaluate(`({
-  submitted: document.body.innerText.includes('Nenhuma cobrança foi gerada nesta etapa'),
-  draftSaved: !!localStorage.getItem('shopping-china-brasil-checkout-v1'),
-  cpfMasked: document.querySelector('[name="cpf"]')?.value,
-  phoneMasked: document.querySelector('[name="phone"]')?.value,
-  cepMasked: document.querySelector('[name="cep"]')?.value
+const cartReady = await waitFor("location.pathname === '/carrinho' && document.body.innerText.includes('Entrar para comprar')");
+const cart = await evaluate(`({
+  required: document.body.innerText.includes('Conta obrigatória'),
+  action: document.querySelector('a[href^="/entrar?next="]')?.textContent?.trim(),
+  destination: document.querySelector('a[href^="/entrar?next="]')?.getAttribute('href')
+})`);
+await evaluate(`document.querySelector('a[href^="/entrar?next="]')?.click(); true`);
+const returnPreserved = await waitFor("location.pathname === '/entrar' && new URLSearchParams(location.search).get('next') === '/checkout' && document.body.innerText.includes('Ainda não tenho conta')");
+await evaluate(`document.querySelector('a[href*="modo=cadastro"]')?.click(); true`);
+const signupReady = await waitFor("location.pathname === '/entrar' && new URLSearchParams(location.search).get('modo') === 'cadastro' && document.body.innerText.includes('Criar conta e continuar')");
+const signup = await evaluate(`({
+  next: new URLSearchParams(location.search).get('next'),
+  name: !!document.querySelector('input[name="name"]'),
+  copy: document.body.innerText.includes('Criar conta e continuar')
 })`);
 
-await command("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-await new Promise((resolve) => setTimeout(resolve, 500));
-const mobile = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
-await writeFile("/tmp/shopping-china-checkout-mobile.png", Buffer.from(mobile.data, "base64"));
-
-await evaluate(`(() => {
-  localStorage.setItem('shopping-china-brasil-cart-v1', JSON.stringify([{
-    id: 'alto-valor', slug: 'produto-alto-valor', title: 'PRODUTO ÚNICO DE ALTO VALOR',
-    image: '/assets/shopping-china/logo-mark.webp', price: 'R$ 6.000,00', quantity: 1
-  }])); location.reload(); return true;
-})()`);
-await waitFor("document.body.innerText.includes('Pagamento organizado em 3 lotes')");
-const highValue = await evaluate(`({
-  pixBatches: [...document.querySelectorAll('span')].filter(node => /^PIX \\d+ de 3$/.test(node.textContent?.trim() ?? '')).length,
-  allowed: !document.querySelector('main button[type="submit"]')?.disabled,
-  notice: document.body.innerText.includes('Compra de item único liberada')
-})`);
-
-await evaluate(`(() => {
-  const items = JSON.parse(localStorage.getItem('shopping-china-brasil-cart-v1'));
-  items.push({ id: 'segundo-item', slug: 'segundo-item', title: 'SEGUNDO PRODUTO', image: '/assets/shopping-china/logo-mark.webp', price: 'R$ 1.000,00', quantity: 1 });
-  localStorage.setItem('shopping-china-brasil-cart-v1', JSON.stringify(items)); location.reload(); return true;
-})()`);
-await waitFor("document.body.innerText.includes('Pedidos acima de US$ 500 aceitam somente uma unidade')");
-const blocked = await evaluate(`({
-  blocked: document.querySelector('main button[type="submit"]')?.disabled === true,
-  warning: document.body.innerText.includes('Revise o carrinho')
-})`);
-
-console.log(JSON.stringify({ ready, initial, submitted, completed, highValue, blocked, screenshots: ["/tmp/shopping-china-checkout-desktop.png", "/tmp/shopping-china-checkout-mobile.png"] }, null, 2));
+console.log(JSON.stringify({ redirected, login, cartReady, cart, returnPreserved, signupReady, signup, screenshot: "/tmp/shopping-china-login-required.png" }, null, 2));
 socket.close();
 
-if (!ready || !initial.pixOnly || !initial.delivery || !initial.total || initial.inputs < 10 || !submitted || !completed.submitted || !completed.draftSaved || completed.cpfMasked !== "529.982.247-25" || completed.phoneMasked !== "(45) 99999-8888" || completed.cepMasked !== "85851-000" || highValue.pixBatches !== 3 || !highValue.allowed || !highValue.notice || !blocked.blocked || !blocked.warning) process.exitCode = 1;
+if (!redirected || login.path !== "/entrar" || login.next !== "/checkout" || !login.google || !login.email || !login.password || !login.accountRequired || !cartReady || !cart.required || cart.action !== "Entrar para comprar" || !cart.destination?.includes("next=%2Fcheckout") || !returnPreserved || !signupReady || signup.next !== "/checkout" || !signup.name || !signup.copy) process.exitCode = 1;

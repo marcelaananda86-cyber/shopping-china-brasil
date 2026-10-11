@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/auth-navigation";
 
 function credentials(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -14,25 +15,45 @@ function credentials(formData: FormData) {
 export async function signIn(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { email, password } = credentials(formData);
+  const next = safeNextPath(formData.get("next"));
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect(`/entrar?erro=${encodeURIComponent("E-mail ou senha inválidos.")}`);
-  redirect("/conta");
+  if (error) redirect(`/entrar?erro=${encodeURIComponent("E-mail ou senha inválidos.")}&next=${encodeURIComponent(next)}`);
+  redirect(next);
 }
 
 export async function signUp(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { email, password } = credentials(formData);
   const name = String(formData.get("name") ?? "").trim();
-  if (name.length < 2) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent("Informe seu nome completo.")}`);
+  const next = safeNextPath(formData.get("next"));
+  if (name.length < 2) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent("Informe seu nome completo.")}&next=${encodeURIComponent(next)}`);
   const requestHeaders = await headers();
   const origin = requestHeaders.get("origin");
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name }, ...(origin ? { emailRedirectTo: `${origin}/auth/confirm` } : {}) },
+    options: { data: { name }, ...(origin ? { emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}` } : {}) },
   });
-  if (error) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent(error.message)}`);
-  redirect(`/entrar?sucesso=${encodeURIComponent("Cadastro realizado. Confira seu e-mail para confirmar a conta.")}`);
+  if (error) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+  redirect(`/entrar?sucesso=${encodeURIComponent("Cadastro realizado. Confira seu e-mail para confirmar a conta.")}&next=${encodeURIComponent(next)}`);
+}
+
+export async function signInWithGoogle(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const next = safeNextPath(formData.get("next"));
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL;
+  if (!origin) redirect(`/entrar?erro=${encodeURIComponent("Não foi possível iniciar o acesso com Google.")}&next=${encodeURIComponent(next)}`);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+      queryParams: { access_type: "offline", prompt: "consent" },
+    },
+  });
+  if (error || !data.url) redirect(`/entrar?erro=${encodeURIComponent("Não foi possível entrar com Google. Tente novamente.")}&next=${encodeURIComponent(next)}`);
+  redirect(data.url);
 }
 
 export async function signOut() {
