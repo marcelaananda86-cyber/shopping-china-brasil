@@ -37,12 +37,18 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
   return (
     <section aria-label="Destaques Shopping China" aria-roledescription="carrossel" className="group relative overflow-hidden bg-[#00183f]">
-      <div className="relative aspect-[4/3] w-full sm:aspect-[5/1]">
+      <div className="relative aspect-[4/3] w-full sm:h-[clamp(420px,36.36vw,620px)] sm:aspect-auto">
         {slides.map((slide, index) => (
           <article key={slide.desktop} aria-hidden={index !== active} className={`absolute inset-0 transition-opacity duration-700 ${index === active ? "z-10 opacity-100" : "pointer-events-none opacity-0"}`}>
+            {!slide.campaign ? (
+              <picture className="absolute -inset-5 opacity-35 blur-2xl">
+                <source media="(max-width: 639px)" srcSet={slide.mobile} />
+                <img src={slide.desktop} alt="" className="h-full w-full scale-110 object-cover" />
+              </picture>
+            ) : null}
             <picture className="absolute inset-0">
               <source media="(max-width: 639px)" srcSet={slide.mobile} />
-              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className={`h-full w-full object-cover ${slide.campaign ? "object-center sm:object-[center_48%]" : "object-center"}`} />
+              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-contain object-center" />
             </picture>
 
             {slide.campaign ? (
@@ -73,8 +79,8 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
       {slides.length > 1 ? (
         <>
-          <button type="button" onClick={() => move(-1)} aria-label="Banner anterior" className="absolute left-2 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#00183f]/55 text-white opacity-0 backdrop-blur-sm transition hover:bg-[#00183f]/80 group-hover:opacity-100 sm:flex"><ChevronLeft size={22} /></button>
-          <button type="button" onClick={() => move(1)} aria-label="Próximo banner" className="absolute right-2 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#00183f]/55 text-white opacity-0 backdrop-blur-sm transition hover:bg-[#00183f]/80 group-hover:opacity-100 sm:flex"><ChevronRight size={22} /></button>
+          <button type="button" onClick={() => move(-1)} aria-label="Banner anterior" className="absolute bottom-4 right-16 z-30 hidden h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#00183f]/65 text-white opacity-0 backdrop-blur-sm transition hover:bg-[#00183f]/90 group-hover:opacity-100 sm:flex"><ChevronLeft size={22} /></button>
+          <button type="button" onClick={() => move(1)} aria-label="Próximo banner" className="absolute bottom-4 right-4 z-30 hidden h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#00183f]/65 text-white opacity-0 backdrop-blur-sm transition hover:bg-[#00183f]/90 group-hover:opacity-100 sm:flex"><ChevronRight size={22} /></button>
           <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 gap-2 sm:bottom-4">{slides.map((_, index) => <button type="button" key={index} onClick={() => setActive(index)} aria-label={`Ir para banner ${index + 1}`} aria-current={index === active ? "true" : undefined} className={`h-2.5 rounded-full border border-white/25 shadow-sm transition-all ${index === active ? "w-8 bg-[#fcb92c]" : "w-2.5 bg-white/75 hover:bg-white"}`} />)}</div>
         </>
       ) : null}
