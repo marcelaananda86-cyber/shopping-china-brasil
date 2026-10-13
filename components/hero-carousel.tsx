@@ -37,18 +37,18 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
   return (
     <section aria-label="Destaques Shopping China" aria-roledescription="carrossel" className="group relative overflow-hidden bg-[#00183f]">
-      <div className="relative aspect-[4/3] w-full sm:h-[clamp(420px,36.36vw,620px)] sm:aspect-auto">
+      <div className="relative aspect-[4/3] w-full sm:h-[clamp(300px,21vw,380px)] sm:aspect-auto">
         {slides.map((slide, index) => (
           <article key={slide.desktop} aria-hidden={index !== active} className={`absolute inset-0 transition-opacity duration-700 ${index === active ? "z-10 opacity-100" : "pointer-events-none opacity-0"}`}>
             {!slide.campaign ? (
-              <picture className="absolute -inset-5 opacity-35 blur-2xl">
+              <picture className="absolute -inset-5 opacity-50 blur-2xl">
                 <source media="(max-width: 639px)" srcSet={slide.mobile} />
                 <img src={slide.desktop} alt="" className="h-full w-full scale-110 object-cover" />
               </picture>
             ) : null}
             <picture className="absolute inset-0">
               <source media="(max-width: 639px)" srcSet={slide.mobile} />
-              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-contain object-center" />
+              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className={`h-full w-full object-contain ${slide.campaign ? "object-right" : "object-center"}`} />
             </picture>
 
             {slide.campaign ? (
@@ -59,12 +59,12 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
                     <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[.15em] text-[#ffd064] backdrop-blur-sm sm:px-3 sm:text-[10px]">
                       <MapPinned size={13} /> Uma nova experiência de compra
                     </p>
-                    <h1 className="mt-2 text-[25px] font-bold leading-[1.03] tracking-[-.035em] drop-shadow-lg sm:mt-3 sm:text-4xl lg:text-5xl">
+                    <h1 className="mt-2 text-[25px] font-bold leading-[1.03] tracking-[-.035em] drop-shadow-lg sm:text-3xl lg:text-[42px] xl:text-[46px]">
                       Agora enviamos<br /><span className="text-[#fcb92c]">para todo o Brasil</span>
                     </h1>
-                    <p className="mt-3 hidden max-w-lg text-sm leading-6 text-white/78 sm:block">Eletrônicos originais, pagamento seguro via PIX e entrega no seu endereço em até 20 dias.</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3">
-                      <HardLink href="/categoria/eletronicos" tabIndex={index === active ? 0 : -1} className="inline-flex items-center gap-2 rounded-full bg-[#bd0811] px-4 py-2.5 text-[11px] font-bold text-white shadow-[0_12px_32px_rgba(189,8,17,.35)] transition hover:-translate-y-0.5 hover:bg-[#d30a14] sm:px-6 sm:py-3.5 sm:text-sm">
+                    <p className="mt-2 hidden max-w-lg text-xs leading-5 text-white/78 lg:block">Eletrônicos originais, pagamento seguro via PIX e entrega no seu endereço em até 20 dias.</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+                      <HardLink href="/categoria/eletronicos" tabIndex={index === active ? 0 : -1} className="inline-flex items-center gap-2 rounded-full bg-[#bd0811] px-4 py-2.5 text-[11px] font-bold text-white shadow-[0_12px_32px_rgba(189,8,17,.35)] transition hover:-translate-y-0.5 hover:bg-[#d30a14] sm:px-5 sm:text-xs">
                         Comprar eletrônicos <ArrowRight size={17} />
                       </HardLink>
                       <span className="hidden items-center gap-2 text-xs font-semibold text-white/80 md:inline-flex"><PackageCheck size={18} className="text-[#fcb92c]" /> Frete a partir de R$ 49,90</span>
