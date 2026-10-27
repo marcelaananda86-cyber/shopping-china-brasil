@@ -24,17 +24,21 @@ export async function signIn(formData: FormData) {
 export async function signUp(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { email, password } = credentials(formData);
+  const passwordConfirmation = String(formData.get("passwordConfirmation") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const next = safeNextPath(formData.get("next"));
   if (name.length < 2) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent("Informe seu nome completo.")}&next=${encodeURIComponent(next)}`);
+  if (password !== passwordConfirmation) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent("As senhas informadas não são iguais.")}&next=${encodeURIComponent(next)}`);
   const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin");
-  const { error } = await supabase.auth.signUp({
+  const origin = requestHeaders.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL;
+  if (!origin) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent("Não foi possível determinar o endereço do site.")}&next=${encodeURIComponent(next)}`);
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name }, ...(origin ? { emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}` } : {}) },
+    options: { data: { name }, emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}` },
   });
   if (error) redirect(`/entrar?modo=cadastro&erro=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+  if (data.session) redirect(next);
   redirect(`/entrar?sucesso=${encodeURIComponent("Cadastro realizado. Confira seu e-mail para confirmar a conta.")}&next=${encodeURIComponent(next)}`);
 }
 

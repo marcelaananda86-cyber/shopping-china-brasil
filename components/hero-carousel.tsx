@@ -8,8 +8,8 @@ type Banner = { desktop: string; mobile: string };
 type Slide = { desktop: string; mobile: string; alt: string; campaign?: boolean };
 
 const brazilCampaign: Slide = {
-  desktop: "/assets/shopping-china/hero-brasil-v1-desktop.webp",
-  mobile: "/assets/shopping-china/hero-brasil-v1-mobile.webp",
+  desktop: "/assets/shopping-china/hero-brasil-v2-desktop.webp",
+  mobile: "/assets/shopping-china/hero-brasil-v2-mobile.webp",
   alt: "Eletrônicos com envio Shopping China para todo o Brasil",
   campaign: true,
 };
@@ -37,18 +37,12 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
   return (
     <section aria-label="Destaques Shopping China" aria-roledescription="carrossel" className="group relative overflow-hidden bg-[#00183f]">
-      <div className="relative aspect-[4/3] w-full sm:h-[clamp(300px,21vw,380px)] sm:aspect-auto">
+      <div className="relative aspect-[4/3] w-full sm:aspect-[5/1]">
         {slides.map((slide, index) => (
           <article key={slide.desktop} aria-hidden={index !== active} className={`absolute inset-0 transition-opacity duration-700 ${index === active ? "z-10 opacity-100" : "pointer-events-none opacity-0"}`}>
-            {!slide.campaign ? (
-              <picture className="absolute -inset-5 opacity-50 blur-2xl">
-                <source media="(max-width: 639px)" srcSet={slide.mobile} />
-                <img src={slide.desktop} alt="" className="h-full w-full scale-110 object-cover" />
-              </picture>
-            ) : null}
             <picture className="absolute inset-0">
               <source media="(max-width: 639px)" srcSet={slide.mobile} />
-              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className={`h-full w-full object-contain ${slide.campaign ? "object-right" : "object-center"}`} />
+              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" />
             </picture>
 
             {slide.campaign ? (
