@@ -71,7 +71,7 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
         <Benefit icon={<ShieldCheck size={18} />} title="Compra protegida" text="Ambiente seguro" />
         <Benefit icon={<PackageCheck size={18} />} title="Produto original" text="Procedência garantida" />
       </div>
-      {numericPrice !== null ? <p className="mt-4 flex items-center gap-2 text-[11px] leading-4 text-slate-500"><Scale size={15} className="shrink-0 text-[#bd0811]" /> Valor estimado de US$ {estimateUsd(numericPrice, exchangeRate.usdBrl).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, com câmbio do site-base a R$ {exchangeRate.usdBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</p> : null}
+      {numericPrice !== null ? <p className="mt-4 flex items-center gap-2 text-[11px] leading-4 text-slate-500"><Scale size={15} className="shrink-0 text-[#bd0811]" /> Valor estimado de US$ {estimateUsd(numericPrice, exchangeRate.usdBrl).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, calculado com a cotação comercial do dia de R$ {exchangeRate.usdBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</p> : null}
     </div>
   );
 }

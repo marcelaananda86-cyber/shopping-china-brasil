@@ -46,7 +46,7 @@ export function ImportRulesBanner() {
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <RuleCard icon={<Landmark />} title="Faixa padrão do pedido" text={`Pedidos de até US$ ${OPERATIONAL_LIMIT_USD} seguem com pagamento único. A conversão usa a cotação publicada pelo site-base, atualmente ${formatMoney(exchangeRate.usdBrl)} por dólar${exchangeRate.fallback ? ", com o último valor disponível em contingência" : ""}.`} />
+              <RuleCard icon={<Landmark />} title="Faixa padrão do pedido" text={`Pedidos de até US$ ${OPERATIONAL_LIMIT_USD} seguem com pagamento único. A conversão para reais utiliza a cotação comercial do dólar vigente no dia, atualizada automaticamente${exchangeRate.fallback ? ". Em caso de indisponibilidade, exibimos temporariamente a última cotação registrada" : ""}.`} />
               <RuleCard icon={<CircleDollarSign />} title="PIX em parcelas" text={`O pagamento pode ser organizado em parcelas PIX de até ${formatMoney(PIX_BATCH_MAX_BRL)}. Isso facilita o pagamento, mas não muda o preço total da compra, da nota ou da declaração aduaneira.`} />
               <RuleCard icon={<FileCheck2 />} title="Um produto por pedido" text="Acima de US$ 500, o carrinho deve conter somente uma unidade de um produto. Para comprar outro item, finalize-o em um novo pedido separado." />
             </div>
