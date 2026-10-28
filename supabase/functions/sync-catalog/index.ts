@@ -65,18 +65,24 @@ async function syncProduct(product: { id: string; slug: string; source_url: stri
     const html = await response.text();
     const structured = readProductJsonLd(html) ?? readProductHtmlFallback(html);
     if (!structured) throw new Error("product_json_ld_missing");
+    const pageContent = readProductPageContent(html);
     const offerValue = Array.isArray(structured.offers) ? structured.offers[0] : structured.offers;
     const offer = isJsonObject(offerValue) ? offerValue : undefined;
     const price = Number(offer?.price);
     if (!Number.isFinite(price) || price <= 0) throw new Error("invalid_price");
     const availability = normalizeAvailability(String(offer?.availability ?? ""));
-    const imageList = (Array.isArray(structured.image) ? structured.image : [structured.image])
-      .filter((value): value is string => typeof value === "string" && Boolean(value));
+    const structuredImages = (Array.isArray(structured.image) ? structured.image : [structured.image])
+      .flatMap((value) => {
+        if (typeof value === "string" && value) return [value];
+        if (isJsonObject(value) && typeof value.url === "string") return [value.url];
+        return [];
+      });
+    const imageList = [...new Set([...pageContent.images, ...structuredImages])];
     const brand = isJsonObject(structured.brand) ? structured.brand.name : structured.brand;
     const currentTime = new Date();
     const { error } = await supabase.from("products").update({
       title: String(structured.name ?? product.slug),
-      description: stripHtml(String(structured.description ?? "")),
+      description: pageContent.description || stripHtml(String(structured.description ?? "")),
       brand: brand ? String(brand) : null,
       gtin: findGtin(structured),
       mpn: structured.mpn ? String(structured.mpn) : null,
@@ -103,6 +109,26 @@ async function syncProduct(product: { id: string; slug: string; source_url: stri
     }).eq("id", product.id);
     throw error;
   }
+}
+
+function readProductPageContent(html: string) {
+  const productStart = html.indexOf("<!--PRODUCT-->");
+  const productEnd = html.indexOf("<!--RELATED-->", productStart);
+  if (productStart < 0 || productEnd < 0) return { description: "", specifications: [], images: [] };
+  const main = html.slice(productStart, productEnd);
+  const images = [...new Set(
+    [...main.matchAll(/<img\b[^>]*(?:src|data-src)=["']([^"']+)["'][^>]*>/gi)]
+      .map((match) => decodeHtml(match[1]))
+      .filter((url) => url.includes("active_storage")),
+  )];
+  const descriptionBlock = main.match(/<h6[^>]*>\s*Descrição\s*<\/h6>([\s\S]*?)<div class=\s*["']sc-text-grey["']/i)?.[1] ?? "";
+  const contentBlocks = [...descriptionBlock.matchAll(/<div class=["']trix-content["']>([\s\S]*?)<\/div>\s*<\/div>/gi)]
+    .map((match) => match[1]);
+  return {
+    description: stripHtml(contentBlocks[0] ?? descriptionBlock),
+    specifications: htmlToLines(contentBlocks[1] ?? ""),
+    images,
+  };
 }
 
 function readProductJsonLd(html: string): JsonObject | null {
@@ -161,7 +187,22 @@ function normalizeAvailability(value: string) {
 }
 
 function stripHtml(value: string) {
-  return decodeHtml(value.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+  return decodeHtml(value.replace(/<br\s*\/?\s*>/gi, "\n").replace(/<[^>]+>/g, " "))
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .trim();
+}
+
+function htmlToLines(value: string) {
+  return [...new Set(
+    decodeHtml(value)
+      .replace(/<br\s*\/?\s*>/gi, "\n")
+      .replace(/<\/(?:div|li|p)>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .split("\n")
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean),
+  )];
 }
 
 function decodeHtml(value: string) {

@@ -38,7 +38,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
         <h1 className="mt-3 text-3xl font-bold leading-tight">Sua conta, pedidos e entregas em um só lugar</h1>
         <div className="mt-8 grid gap-5 text-sm text-white/75">
           <Feature icon={<PackageSearch />} title="Acompanhe seus pedidos" text="Consulte status, valores e código de rastreamento." />
-          <Feature icon={<Database />} title="Histórico centralizado" text="Compras protegidas no banco Supabase, disponíveis em qualquer dispositivo." />
+          <Feature icon={<Database />} title="Histórico de compras" text="Acesse seus pedidos anteriores com segurança em qualquer dispositivo." />
           <Feature icon={<LockKeyhole />} title="Compra somente com conta" text="A autenticação é obrigatória antes do checkout para proteger seus dados e seu pedido." />
         </div>
       </div>
@@ -59,7 +59,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
               <button type="submit" className="flex h-13 w-full items-center justify-center gap-3 rounded-full border border-slate-300 bg-white px-6 text-sm font-bold text-[#002055] shadow-sm transition hover:border-slate-400 hover:bg-slate-50"><GoogleIcon /> Continuar com Google</button>
             </form> : <div className="mt-6">
               <button type="button" disabled className="flex h-13 w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-6 text-sm font-bold text-slate-400"><GoogleIcon /> Continuar com Google</button>
-              <p className="mt-2 text-center text-[11px] leading-5 text-slate-400">Disponível assim que o provedor Google for ativado no Supabase.</p>
+              <p className="mt-2 text-center text-[11px] leading-5 text-slate-400">Esta opção de acesso estará disponível em breve.</p>
             </div>}
           <div className="my-5 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[.12em] text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>ou use seu e-mail</span><span className="h-px flex-1 bg-slate-200" /></div>
           <form action={signup ? signUp : signIn} className="grid gap-4">
@@ -70,7 +70,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
             {signup ? <label className="text-sm font-semibold text-[#002055]">Confirmar senha<input name="passwordConfirmation" type="password" minLength={8} autoComplete="new-password" required className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 font-normal outline-none focus:border-[#002055]" /></label> : null}
             <button className="mt-1 rounded-full bg-[#bd0811] px-6 py-4 text-sm font-bold text-white hover:bg-[#97070e]">{signup ? "Criar conta e continuar" : "Entrar e continuar"}</button>
           </form>
-        </> : <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Integração preparada.</strong> Falta conectar a URL e a chave publicável do projeto Supabase para habilitar o cadastro.</div>}
+        </> : <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Cadastro temporariamente indisponível.</strong> Estamos finalizando esta área. Tente novamente em alguns instantes.</div>}
 
         <a href={switchHref} className="mt-5 text-center text-sm font-semibold text-[#002055] hover:text-[#bd0811]">{signup ? "Já tenho conta" : "Ainda não tenho conta — criar agora"}</a>
         <p className="mt-4 text-center text-xs leading-5 text-slate-400">Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.</p>

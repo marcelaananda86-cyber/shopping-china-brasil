@@ -67,8 +67,14 @@ const categories = Object.entries(categoryNames).map(([slug, name]) => {
 });
 
 const heroSection = between(html, '<section id="main-banners">', "</section>");
-const desktopBanners = [...heroSection.matchAll(/class="w-100 d-none d-md-block"[^>]+src="([^"]+)"/g)].map((match) => decodeEntities(match[1]));
-const mobileBanners = [...heroSection.matchAll(/class="w-100 d-block d-md-none"[^>]+src="([^"]+)"/g)].map((match) => decodeEntities(match[1]));
+const bannerBlocks = heroSection.match(/<div class="carousel-item[^"]*">[\s\S]*?<\/div>/g) ?? [];
+const banners = bannerBlocks.map((block) => {
+  const sourceHref = decodeEntities(block.match(/<a href="([^"]+)"/)?.[1] ?? "");
+  const desktop = decodeEntities(block.match(/class="w-100 d-none d-md-block"[^>]+src="([^"]+)"/)?.[1] ?? "");
+  const mobile = decodeEntities(block.match(/class="w-100 d-block d-md-none"[^>]+src="([^"]+)"/)?.[1] ?? desktop);
+  const label = bannerLabel(desktop);
+  return { desktop, mobile, href: localBannerHref(sourceHref, label, catalog), label };
+}).filter((banner) => banner.desktop);
 
 const popularSection = between(html, 'id="most-visited"', "</section>");
 const popular = [...popularSection.matchAll(/href="https:\/\/www\.shoppingchina\.com\.br\/([^"/?]+)"[\s\S]*?<img[^>]+alt="([^"]+)"[^>]+src="([^"]+)"/g)]
@@ -81,7 +87,7 @@ const dealsSection = between(html, "Encontre o produto dos seus sonhos", "</sect
 const home = {
   syncedAt: new Date().toISOString(),
   source: SOURCE,
-  banners: desktopBanners.map((desktop, index) => ({ desktop, mobile: mobileBanners[index] ?? desktop })),
+  banners,
   popular,
   sections: {
     opportunities: extractProducts(uniqueSection),
@@ -100,8 +106,10 @@ const downloads = [
   { url: `${SOURCE}/img/photos/logo/logo.webp`, file: "logo-mark.webp" },
   { url: `${SOURCE}/img/photos/logo/shochi_texto.webp`, file: "logo-word.webp" },
   { url: `${SOURCE}/img/footer/logo_ecommerce.webp`, file: "logo-footer.webp" },
-  ...desktopBanners.map((url, index) => ({ url, file: `hero-${index + 1}-desktop.webp` })),
-  ...mobileBanners.map((url, index) => ({ url, file: `hero-${index + 1}-mobile.webp` })),
+  ...banners.flatMap((banner, index) => [
+    { url: banner.desktop, file: `hero-${index + 1}-desktop.webp` },
+    { url: banner.mobile, file: `hero-${index + 1}-mobile.webp` },
+  ]),
   ...popular.map((item, index) => ({ url: item.image, file: `popular-${index + 1}.webp` })),
 ];
 
@@ -115,7 +123,7 @@ console.log(JSON.stringify({
   products: catalog.length,
   categories: categories.length,
   subcategories: categories.reduce((total, item) => total + item.children.length, 0),
-  banners: home.banners.length,
+  banners: banners.length,
   homeProducts: Object.values(home.sections).reduce((total, items) => total + items.length, 0),
   assets: downloads.length,
 }, null, 2));
@@ -172,6 +180,38 @@ function decodeEntities(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function bannerLabel(url) {
+  const filename = decodeURIComponent(url.split("/").at(-1) ?? "Destaque Shopping China")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[()_\-]+/g, " ")
+    .replace(/\b(?:full|mobile|banner|pt|st)\b/gi, " ")
+    .replace(/stbanner/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return filename || "Destaque Shopping China";
+}
+
+function localBannerHref(sourceHref, label, productCatalog) {
+  try {
+    const url = new URL(sourceHref);
+    const query = url.searchParams.get("query");
+    if (query) return `/busca?q=${encodeURIComponent(query)}`;
+
+    const productMatch = url.pathname.match(/^\/produto\/([^/]+)$/);
+    if (productMatch) {
+      const requested = productMatch[1];
+      const product = productCatalog.find((item) => item.id === requested || item.slug === requested);
+      return product ? `/produto/${product.slug}` : `/busca?q=${encodeURIComponent(requested)}`;
+    }
+
+    if (url.pathname.startsWith("/marcas/")) return `/busca?q=${encodeURIComponent(label)}`;
+    if (url.pathname !== "/") return `/categoria${url.pathname}`;
+  } catch {
+    // Invalid destinations fall back to the site's search.
+  }
+  return `/busca?q=${encodeURIComponent(label)}`;
 }
 
 async function writeJson(file, value) {

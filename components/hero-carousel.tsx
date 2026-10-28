@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, MapPinned, PackageCheck } from "lucide-react";
 import { HardLink } from "@/components/hard-link";
 
-type Banner = { desktop: string; mobile: string };
-type Slide = { desktop: string; mobile: string; alt: string; campaign?: boolean };
+type Banner = { desktop: string; mobile: string; href?: string; label?: string };
+type Slide = { desktop: string; mobile: string; alt: string; href?: string; campaign?: boolean };
 
 const brazilCampaign: Slide = {
   desktop: "/assets/shopping-china/hero-brasil-v2-desktop.webp",
@@ -17,10 +17,11 @@ const brazilCampaign: Slide = {
 export function HeroCarousel({ banners }: { banners: Banner[] }) {
   const slides: Slide[] = [
     brazilCampaign,
-    ...banners.map((_, index) => ({
+    ...banners.map((banner, index) => ({
       desktop: `/assets/shopping-china/hero-${index + 1}-desktop.webp`,
       mobile: `/assets/shopping-china/hero-${index + 1}-mobile.webp`,
-      alt: `Destaque Shopping China ${index + 1}`,
+      alt: banner.label ? `Destaque ${banner.label}` : `Destaque Shopping China ${index + 1}`,
+      href: banner.href,
     })),
   ];
   const [active, setActive] = useState(0);
@@ -40,10 +41,19 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
       <div className="relative aspect-[4/3] w-full sm:aspect-[5/1]">
         {slides.map((slide, index) => (
           <article key={slide.desktop} aria-hidden={index !== active} className={`absolute inset-0 transition-opacity duration-700 ${index === active ? "z-10 opacity-100" : "pointer-events-none opacity-0"}`}>
-            <picture className="absolute inset-0">
-              <source media="(max-width: 639px)" srcSet={slide.mobile} />
-              <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" />
-            </picture>
+            {slide.href ? (
+              <HardLink href={slide.href} tabIndex={index === active ? 0 : -1} aria-label={`Ver campanha: ${slide.alt}`} className="absolute inset-0 block cursor-pointer">
+                <picture className="absolute inset-0">
+                  <source media="(max-width: 639px)" srcSet={slide.mobile} />
+                  <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" />
+                </picture>
+              </HardLink>
+            ) : (
+              <picture className="absolute inset-0">
+                <source media="(max-width: 639px)" srcSet={slide.mobile} />
+                <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" />
+              </picture>
+            )}
 
             {slide.campaign ? (
               <>

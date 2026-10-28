@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
-import type { CategoryData } from "@/lib/shopping-china";
+import type { CategoryData, ProductCardData } from "@/lib/shopping-china";
 import { HardLink } from "@/components/hard-link";
 import { useCart } from "@/components/cart-provider";
 
-type CatalogItem = { id: string; slug: string; title: string };
-
 export function SiteHeader({ categories }: { categories: CategoryData[] }) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [catalog, setCatalog] = useState<CatalogItem[] | null>(null);
-  const [catalogError, setCatalogError] = useState(false);
+  const [results, setResults] = useState<ProductCardData[]>([]);
+  const [resultTotal, setResultTotal] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeResult, setActiveResult] = useState(-1);
   const searchBox = useRef<HTMLFormElement>(null);
@@ -26,37 +28,61 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  async function loadCatalog() {
-    if (catalog || catalogError) return;
-    try {
-      const response = await fetch("/data/catalog-index.json");
-      if (!response.ok) throw new Error("Falha ao carregar catálogo");
-      setCatalog(await response.json());
-    } catch {
-      setCatalogError(true);
+  useEffect(() => {
+    const query = search.trim();
+    if (normalize(query).length < 2) return;
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError(false);
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Falha ao consultar catálogo");
+        const data = await response.json() as { products: ProductCardData[]; total: number };
+        setResults(data.products);
+        setResultTotal(data.total);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setResults([]);
+          setResultTotal(0);
+          setSearchError(true);
+        }
+      } finally {
+        if (!controller.signal.aborted) setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [search]);
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setSearchOpen(true);
+    setActiveResult(-1);
+    if (normalize(value.trim()).length < 2) {
+      setResults([]);
+      setResultTotal(0);
+      setSearchLoading(false);
+      setSearchError(false);
     }
   }
-
-  const results = useMemo(() => {
-    const query = normalize(search.trim());
-    if (!catalog || query.length < 2) return [];
-    const terms = query.split(/\s+/).filter(Boolean);
-    return catalog
-      .map((item) => ({ item, score: searchScore(normalize(item.title), query, terms) }))
-      .filter((result) => result.score > 0)
-      .sort((a, b) => b.score - a.score || a.item.title.localeCompare(b.item.title, "pt-BR"))
-      .slice(0, 8)
-      .map((result) => result.item);
-  }, [catalog, search]);
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault();
     if (activeResult >= 0 && results[activeResult]) {
-      window.location.assign(`/produto/${results[activeResult].slug}`);
+      router.push(`/produto/${results[activeResult].slug}`);
+      setSearchOpen(false);
       return;
     }
     const query = search.trim();
-    if (normalize(query).length >= 2) window.location.assign(`/busca?q=${encodeURIComponent(query)}`);
+    if (normalize(query).length >= 2) {
+      router.push(`/busca?q=${encodeURIComponent(query)}`);
+      setSearchOpen(false);
+    }
   }
 
   function handleSearchKey(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -90,8 +116,8 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
               <input
                 type="search"
                 value={search}
-                onFocus={() => { setSearchOpen(true); void loadCatalog(); }}
-                onChange={(event) => { setSearch(event.target.value); setSearchOpen(true); setActiveResult(-1); void loadCatalog(); }}
+                onFocus={() => setSearchOpen(true)}
+                onChange={(event) => updateSearch(event.target.value)}
                 onKeyDown={handleSearchKey}
                 placeholder="O que você está procurando?"
                 aria-label="Pesquisar produtos"
@@ -101,16 +127,21 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
                 autoComplete="off"
                 className="h-11 w-full rounded-full border-0 bg-white pl-12 pr-11 text-sm text-[#002055] outline-none ring-[#fcb92c] placeholder:text-slate-400 focus:ring-3"
               />
-              {search ? <button type="button" onClick={() => { setSearch(""); setActiveResult(-1); }} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-[#002055]" aria-label="Limpar pesquisa"><X size={17} /></button> : null}
+              {search ? <button type="button" onClick={() => updateSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-[#002055]" aria-label="Limpar pesquisa"><X size={17} /></button> : null}
               {searchOpen && normalize(search).length >= 2 ? (
                 <div id="catalog-search-results" className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl" role="listbox">
-                  {catalog === null ? <p className="p-5 text-sm text-slate-500">Carregando catálogo…</p> : null}
-                  {catalogError ? <p className="p-5 text-sm text-[#bd0811]">Não foi possível carregar a busca. Tente novamente.</p> : null}
-                  {catalog && results.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhum produto encontrado.</p> : null}
+                  {searchLoading ? <p className="p-5 text-sm text-slate-500">Buscando produtos…</p> : null}
+                  {searchError ? <p className="p-5 text-sm text-[#bd0811]">Não foi possível carregar a busca. Tente novamente.</p> : null}
+                  {!searchLoading && !searchError && results.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhum produto encontrado.</p> : null}
                   {results.map((item, index) => (
-                    <HardLink id={`search-result-${index}`} key={item.id} href={`/produto/${item.slug}`} onMouseEnter={() => setActiveResult(index)} onClick={() => setSearchOpen(false)} role="option" aria-selected={index === activeResult} className={`block border-b border-slate-100 px-5 py-3 text-sm font-medium text-[#002055] ${index === activeResult ? "bg-slate-100" : "hover:bg-slate-50"}`}>{item.title}<span className="mt-0.5 block text-[11px] font-normal text-slate-400">Código {item.id}</span></HardLink>
+                    <HardLink id={`search-result-${index}`} key={item.id} href={`/produto/${item.slug}`} onMouseEnter={() => setActiveResult(index)} onClick={() => setSearchOpen(false)} role="option" aria-selected={index === activeResult} className={`flex items-center gap-3 border-b border-slate-100 px-4 py-3 ${index === activeResult ? "bg-slate-100" : "hover:bg-slate-50"}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.image} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1" />
+                      <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-semibold uppercase leading-4 text-[#002055]">{item.title}</span><span className="mt-1 block text-[11px] text-slate-400">Código {item.id}</span></span>
+                      <span className="shrink-0 text-xs font-bold text-[#bd0811]">{item.price ?? "Consulte"}</span>
+                    </HardLink>
                   ))}
-                  {results.length ? <HardLink href={`/busca?q=${encodeURIComponent(search.trim())}`} onClick={() => setSearchOpen(false)} className="flex items-center justify-between bg-slate-50 px-5 py-3 text-xs font-bold text-[#002055] hover:bg-slate-100"><span>Ver todos os resultados</span><span className="text-slate-400">27.134 produtos</span></HardLink> : null}
+                  {results.length ? <HardLink href={`/busca?q=${encodeURIComponent(search.trim())}`} onClick={() => setSearchOpen(false)} className="flex items-center justify-between bg-slate-50 px-5 py-3 text-xs font-bold text-[#002055] hover:bg-slate-100"><span>Ver todos os resultados</span><span className="text-slate-400">{resultTotal.toLocaleString("pt-BR")} produtos</span></HardLink> : null}
                 </div>
               ) : null}
             </form>
@@ -159,12 +190,4 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
 
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
-function searchScore(title: string, query: string, terms: string[]) {
-  if (!terms.every((term) => title.includes(term))) return 0;
-  if (title === query) return 1000;
-  if (title.startsWith(query)) return 800;
-  if (title.split(/\s+/).some((word) => word.startsWith(query))) return 600;
-  return 300 + terms.reduce((score, term) => score + (title.split(/\s+/).some((word) => word.startsWith(term)) ? 25 : 5), 0);
 }
