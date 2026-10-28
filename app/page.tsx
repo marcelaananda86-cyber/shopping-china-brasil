@@ -15,23 +15,23 @@ export default async function Home() {
       <HeroCarousel banners={homeData.banners} />
 
       <section className="border-b border-slate-200 bg-white">
-        <div className="page-shell grid grid-cols-1 divide-y divide-slate-200 py-2 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="page-shell grid grid-cols-3 divide-x divide-slate-200 py-2">
           <TrustItem icon={<BadgeCheck />} title="Produtos originais" text="As melhores marcas do mundo" />
           <TrustItem icon={<MapPin />} title="Ciudad del Este" text="Estoque da filial principal" />
           <TrustItem icon={<ShieldCheck />} title="Compra segura" text="Dados e pedidos protegidos" />
         </div>
       </section>
 
-      <section className="page-shell py-12">
+      <section className="deferred-section page-shell py-8 md:py-12">
         <SectionHeading eyebrow="Explore" title="Setores mais visitados" description="Encontre rapidamente os departamentos preferidos dos nossos clientes." />
-        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:mt-7 sm:gap-3 lg:grid-cols-6">
           {homeData.popular.map((category, index) => (
             <HardLink key={category.slug} href={`/categoria/${category.slug}`} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
               <div className="aspect-square overflow-hidden rounded-xl bg-slate-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/assets/shopping-china/popular-${index + 1}.webp`} alt={category.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                <img src={`/assets/shopping-china/popular-${index + 1}.webp`} alt={category.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
               </div>
-              <h3 className="px-2 py-3 text-center text-sm font-bold uppercase text-[#002055]">{category.name}</h3>
+              <h3 className="px-1 py-2 text-center text-[10px] font-bold uppercase leading-4 text-[#002055] sm:px-2 sm:py-3 sm:text-sm">{category.name}</h3>
             </HardLink>
           ))}
         </div>
@@ -39,7 +39,7 @@ export default async function Home() {
 
       <ProductSection eyebrow="Seleção Shopping China" title="Oportunidades únicas" description="Produtos escolhidos com preços sincronizados com o catálogo atual." products={liveSections.opportunities} />
 
-      <section className="my-8 bg-[#002055] text-white">
+      <section className="deferred-section my-6 bg-[#002055] text-white md:my-8">
         <div className="page-shell grid items-center gap-6 py-10 md:grid-cols-[1fr_auto]">
           <div className="flex items-start gap-4">
             <span className="rounded-2xl bg-[#fcb92c] p-3 text-[#002055]"><Sparkles size={26} /></span>
@@ -123,7 +123,7 @@ function formatBrl(cents: number) {
 }
 
 function TrustItem({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return <div className="flex items-center justify-center gap-3 px-4 py-4 text-[#002055] [&_svg]:shrink-0 [&_svg]:text-[#bd0811]"><span>{icon}</span><div><p className="text-sm font-bold">{title}</p><p className="text-xs text-slate-500">{text}</p></div></div>;
+  return <div className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-3 text-center text-[#002055] sm:flex-row sm:gap-3 sm:px-4 sm:py-4 sm:text-left [&_svg]:shrink-0 [&_svg]:text-[#bd0811]"><span>{icon}</span><div className="min-w-0"><p className="text-[10px] font-bold leading-4 sm:text-sm">{title}</p><p className="hidden text-xs text-slate-500 sm:block">{text}</p></div></div>;
 }
 
 function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
@@ -132,5 +132,5 @@ function SectionHeading({ eyebrow, title, description }: { eyebrow: string; titl
 
 function ProductSection({ eyebrow, title, description, products }: { eyebrow: string; title: string; description: string; products: ProductCardData[] }) {
   if (!products.length) return null;
-  return <section className="page-shell py-12"><SectionHeading eyebrow={eyebrow} title={title} description={description} /><div className="product-row mt-7">{products.slice(0, 12).map((product) => <ProductCard key={product.id} product={product} />)}</div></section>;
+  return <section className="deferred-section page-shell py-8 md:py-12"><SectionHeading eyebrow={eyebrow} title={title} description={description} /><div className="product-row mt-6 sm:mt-7">{products.slice(0, 12).map((product) => <ProductCard key={product.id} product={product} />)}</div></section>;
 }

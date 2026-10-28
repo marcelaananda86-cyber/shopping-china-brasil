@@ -274,7 +274,7 @@ function CheckoutSteps({ prepared }: { prepared: boolean }) {
 }
 
 function CheckoutSection({ icon, eyebrow, title, children }: { icon: React.ReactNode; eyebrow: string; title: string; children: React.ReactNode }) {
-  return <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:p-7"><div className="mb-5 flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef3fa] text-[#bd0811]">{icon}</span><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#bd0811]">{eyebrow}</p><h2 className="mt-0.5 text-xl font-bold text-[#002055]">{title}</h2></div></div>{children}</section>;
+  return <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-5 md:p-7"><div className="mb-5 flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef3fa] text-[#bd0811] sm:h-11 sm:w-11">{icon}</span><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#bd0811]">{eyebrow}</p><h2 className="mt-0.5 text-lg font-bold text-[#002055] sm:text-xl">{title}</h2></div></div>{children}</section>;
 }
 
 function Field({ label, name, value, error, onChange, ...props }: { label: string; name: keyof CheckoutDraft; value: string; error?: string; onChange: (value: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "name" | "value" | "onChange">) {

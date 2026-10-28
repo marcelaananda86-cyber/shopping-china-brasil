@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, MapPinned, PackageCheck } from "lucide-react";
 import { HardLink } from "@/components/hard-link";
@@ -29,6 +31,7 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
   useEffect(() => {
     if (slides.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const interval = window.setInterval(() => setActive((value) => (value + 1) % slides.length), 7000);
     return () => window.clearInterval(interval);
   }, [slides.length]);
@@ -71,14 +74,12 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
             {slide.href ? (
               <HardLink href={slide.href} tabIndex={index === active ? 0 : -1} aria-label={`Ver campanha: ${slide.alt}`} className="absolute inset-0 block cursor-pointer">
                 <picture className="absolute inset-0">
-                  <source media="(max-width: 639px)" srcSet={slide.mobile} />
-                  <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" />
+                  {index === active ? <><source media="(max-width: 639px)" srcSet={slide.mobile} /><img src={slide.desktop} alt={slide.alt} decoding="async" fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" /></> : null}
                 </picture>
               </HardLink>
             ) : (
               <picture className="absolute inset-0">
-                <source media="(max-width: 639px)" srcSet={slide.mobile} />
-                <img src={slide.desktop} alt={slide.alt} fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" />
+                {index === active ? <><source media="(max-width: 639px)" srcSet={slide.mobile} /><img src={slide.desktop} alt={slide.alt} decoding="async" fetchPriority={index === 0 ? "high" : "auto"} className="h-full w-full object-cover object-center" /></> : null}
               </picture>
             )}
 

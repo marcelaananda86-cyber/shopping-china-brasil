@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, CircleDollarSign, CreditCard, Minus, PackageCheck, Plus, Scale, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
 import { priceToNumber, useCart } from "@/components/cart-provider";
 import { estimateUsd, operationalLimitBrl, OPERATIONAL_LIMIT_USD } from "@/lib/commerce-rules";
@@ -16,6 +17,7 @@ type PurchaseProduct = {
 };
 
 export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) {
+  const router = useRouter();
   const { addItem } = useCart();
   const exchangeRate = useExchangeRate();
   const [quantity, setQuantity] = useState(1);
@@ -33,7 +35,7 @@ export function ProductPurchasePanel({ product }: { product: PurchaseProduct }) 
 
   function buyNow() {
     addItem(product, quantity, false);
-    window.location.assign("/carrinho");
+    router.push("/carrinho");
   }
 
   return (

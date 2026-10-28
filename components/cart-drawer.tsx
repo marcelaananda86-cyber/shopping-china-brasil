@@ -32,7 +32,7 @@ export function CartDrawer() {
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="Seu carrinho">
       <button type="button" onClick={closeCart} className="absolute inset-0 bg-[#001a46]/65 backdrop-blur-sm" aria-label="Fechar carrinho" />
-      <aside className="absolute inset-y-0 right-0 flex w-[min(94vw,470px)] flex-col bg-white shadow-2xl">
+      <aside className="absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-2xl sm:w-[min(94vw,470px)]">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3 text-[#002055]">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eef3fa]"><ShoppingBag size={21} /></span>
@@ -75,7 +75,7 @@ export function CartDrawer() {
                 );
               })}
             </div>
-            <div className="border-t border-slate-200 bg-slate-50 px-5 py-5">
+            <div className="border-t border-slate-200 bg-slate-50 px-5 py-5 [padding-bottom:max(1.25rem,env(safe-area-inset-bottom))]">
               <div className="flex items-end justify-between gap-3"><div><p className="text-xs uppercase tracking-wide text-slate-500">Subtotal</p><p className="mt-1 text-2xl font-bold text-[#002055]">{formatMoney(subtotal)}</p></div><p className="pb-1 text-right text-xs text-slate-500">Entrega em<br />até 20 dias</p></div>
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-3 text-[11px]"><span className="font-semibold text-[#002055]">US$ {estimateUsd(subtotal, exchangeRate.usdBrl).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimados</span><span className="text-slate-500">Limite US$ {OPERATIONAL_LIMIT_USD}</span></div>

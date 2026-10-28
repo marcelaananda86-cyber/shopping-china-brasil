@@ -12,7 +12,7 @@ export function CartPageContent() {
 
   if (!hydrated) return <div className="h-96 animate-pulse rounded-3xl bg-slate-100" />;
   if (!items.length) return (
-    <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 text-center shadow-sm">
+    <div className="rounded-3xl border border-slate-200 bg-white px-5 py-14 text-center shadow-sm sm:px-6 sm:py-20">
       <span className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-slate-400"><ShoppingBag size={40} /></span>
       <h1 className="mt-6 text-3xl font-bold text-[#002055]">Seu carrinho está vazio</h1>
       <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500">Encontre seus produtos no catálogo e use o botão “Adicionar” ou “Comprar agora”.</p>
@@ -36,10 +36,10 @@ export function CartPageContent() {
         <div className="divide-y divide-slate-100 px-5 md:px-7">
           {items.map((item) => {
             const unitPrice = priceToNumber(item.price);
-            return <article key={item.id} className="grid gap-4 py-6 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-              <HardLink href={`/produto/${item.slug}`} className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 p-2"><img src={item.image} alt={item.title} className="h-full w-full object-contain" /></HardLink>
-              <div><p className="text-xs font-bold uppercase tracking-wide text-[#bd0811]">Código {item.id}</p><HardLink href={`/produto/${item.slug}`} className="mt-1 block max-w-xl font-semibold uppercase leading-6 text-[#002055] hover:text-[#bd0811]">{item.title}</HardLink><p className="mt-2 text-sm font-bold text-[#002055]">{item.price ?? "Preço sob consulta"}</p><button type="button" onClick={() => removeItem(item.id)} className="mt-3 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-[#bd0811]"><Trash2 size={14} /> Remover</button></div>
-              <div className="flex items-center justify-between gap-4 sm:block sm:text-right">
+            return <article key={item.id} className="grid grid-cols-[84px_minmax(0,1fr)] gap-4 py-5 sm:grid-cols-[120px_1fr_auto] sm:items-center sm:py-6">
+              <HardLink href={`/produto/${item.slug}`} className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 p-2 sm:h-28 sm:w-28"><img src={item.image} alt={item.title} loading="lazy" className="h-full w-full object-contain" /></HardLink>
+              <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-[#bd0811] sm:text-xs">Código {item.id}</p><HardLink href={`/produto/${item.slug}`} className="mt-1 block line-clamp-3 max-w-xl text-sm font-semibold uppercase leading-5 text-[#002055] hover:text-[#bd0811] sm:text-base sm:leading-6">{item.title}</HardLink><p className="mt-2 text-sm font-bold text-[#002055]">{item.price ?? "Preço sob consulta"}</p><button type="button" onClick={() => removeItem(item.id)} className="mt-2 inline-flex min-h-9 items-center gap-1 text-xs text-slate-400 hover:text-[#bd0811] sm:mt-3"><Trash2 size={14} /> Remover</button></div>
+              <div className="col-span-2 flex items-center justify-between gap-4 sm:col-span-1 sm:block sm:text-right">
                 <div className="inline-flex items-center overflow-hidden rounded-full border border-slate-200"><button type="button" onClick={() => setQuantity(item.id, item.quantity - 1)} className="p-2.5 hover:bg-slate-50" aria-label="Diminuir"><Minus size={15} /></button><span className="min-w-9 text-center text-sm font-bold">{item.quantity}</span><button type="button" onClick={() => setQuantity(item.id, item.quantity + 1)} className="p-2.5 hover:bg-slate-50" aria-label="Aumentar"><Plus size={15} /></button></div>
                 <p className="text-base font-bold text-[#002055] sm:mt-4">{unitPrice === null ? "Sob consulta" : formatMoney(unitPrice * item.quantity)}</p>
               </div>

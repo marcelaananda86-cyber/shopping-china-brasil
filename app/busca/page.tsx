@@ -38,14 +38,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const lastResult = products.length ? Math.min(total, firstResult + products.length - 1) : 0;
 
   return (
-    <main className="page-shell py-8 md:py-12">
-      <div className="rounded-3xl bg-[#002055] px-5 py-8 text-white shadow-[0_18px_55px_rgba(0,32,85,.18)] md:px-10 md:py-10">
+    <main className="page-shell py-6 md:py-12">
+      <div className="rounded-3xl bg-[#002055] px-4 py-6 text-white shadow-[0_18px_55px_rgba(0,32,85,.18)] sm:px-5 sm:py-8 md:px-10 md:py-10">
         <p className="text-xs font-bold uppercase tracking-[.2em] text-[#fcb92c]">Catálogo completo</p>
-        <h1 className="mt-2 text-3xl font-bold md:text-4xl">Encontre seu produto</h1>
+        <h1 className="mt-2 text-2xl font-bold sm:text-3xl md:text-4xl">Encontre seu produto</h1>
         <form action="/busca" method="get" className="relative mt-6 max-w-4xl">
           <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#002055]" />
-          <input name="q" defaultValue={query} autoFocus placeholder="Digite marca, modelo ou produto" className="h-14 w-full rounded-full bg-white pl-12 pr-32 text-sm text-[#002055] outline-none ring-[#fcb92c] focus:ring-3" />
-          <button type="submit" className="absolute right-2 top-2 h-10 rounded-full bg-[#bd0811] px-6 text-sm font-bold text-white transition hover:bg-[#97070e]">Buscar</button>
+          <input name="q" defaultValue={query} placeholder="Marca, modelo ou produto" className="h-14 w-full rounded-full bg-white pl-12 pr-14 text-[16px] text-[#002055] outline-none ring-[#fcb92c] focus:ring-3 sm:pr-32 sm:text-sm" />
+          <button type="submit" className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#bd0811] text-sm font-bold text-white transition hover:bg-[#97070e] sm:w-auto sm:px-6"><Search size={18} className="sm:hidden" /><span className="hidden sm:inline">Buscar</span></button>
         </form>
       </div>
 
@@ -62,14 +62,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   <h2 className="mt-1 text-2xl font-bold text-[#002055]">Produtos para “{query}”</h2>
                   <p className="mt-1 text-sm text-slate-500">Mostrando {firstResult}–{lastResult} de {total.toLocaleString("pt-BR")} produtos</p>
                 </div>
-                <form action="/busca" method="get" className="flex items-center gap-2">
+                <form action="/busca" method="get" className="flex w-full items-center gap-2 sm:w-auto">
                   <input type="hidden" name="q" value={query} />
                   <SlidersHorizontal size={17} className="text-[#002055]" />
                   <label htmlFor="search-sort" className="sr-only">Ordenar resultados</label>
-                  <select id="search-sort" name="sort" defaultValue={sort} className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-[#002055] outline-none focus:border-[#002055]">
+                  <select id="search-sort" name="sort" defaultValue={sort} className="h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-[#002055] outline-none focus:border-[#002055] sm:flex-none">
                     {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
-                  <button type="submit" className="h-11 rounded-xl bg-[#002055] px-4 text-sm font-bold text-white transition hover:bg-[#bd0811]">Ordenar</button>
+                  <button type="submit" className="h-11 shrink-0 rounded-xl bg-[#002055] px-3 text-sm font-bold text-white transition hover:bg-[#bd0811] sm:px-4">Ordenar</button>
                 </form>
               </div>
             </div>

@@ -25,9 +25,10 @@ export function ImportRulesBanner() {
   return (
     <>
       <div className="border-b border-amber-200 bg-[#fff7df] text-[#002055]">
-        <div className="page-shell flex min-h-11 items-center justify-center gap-2 py-2 text-center text-xs sm:text-sm">
+        <div className="page-shell flex min-h-10 items-center justify-center gap-2 py-1.5 text-center text-[11px] leading-4 sm:min-h-11 sm:py-2 sm:text-sm">
           <ShieldCheck size={17} className="shrink-0 text-[#bd0811]" />
-          <span><strong>Compras para o Brasil:</strong> até US$ {OPERATIONAL_LIMIT_USD} por pedido; acima da cota, somente 1 produto com PIX em lotes.</span>
+          <span className="sm:hidden"><strong>Compras para o Brasil:</strong> veja limites e condições.</span>
+          <span className="hidden sm:inline"><strong>Compras para o Brasil:</strong> até US$ {OPERATIONAL_LIMIT_USD} por pedido; acima da cota, somente 1 produto com PIX em lotes.</span>
           <button type="button" onClick={() => setOpen(true)} className="shrink-0 font-bold text-[#bd0811] underline decoration-[#bd0811]/30 underline-offset-4 hover:decoration-[#bd0811]">Entenda</button>
         </div>
       </div>

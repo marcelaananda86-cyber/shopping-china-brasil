@@ -103,18 +103,19 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
     <>
       <header className="sticky top-0 z-50 shadow-[0_4px_18px_rgba(0,32,85,.12)]">
         <div className="bg-[#001a46] text-white">
-          <div className="page-shell flex h-[72px] items-center gap-3 md:gap-6">
+          <div className="page-shell flex flex-wrap items-center gap-x-2 gap-y-2 py-2 sm:h-[72px] sm:flex-nowrap sm:py-0 md:gap-6">
             <button type="button" className="icon-button" onClick={() => setMenuOpen(true)} aria-label="Abrir categorias"><Menu size={24} /></button>
             <HardLink href="/" className="flex shrink-0 items-center gap-2" aria-label="Shopping China Brasil — início">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/assets/shopping-china/logo-mark.webp" alt="" className="h-10 w-12 object-contain brightness-0 invert" />
+              <img src="/assets/shopping-china/logo-mark.webp" alt="" className="h-9 w-11 object-contain brightness-0 invert sm:h-10 sm:w-12" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/assets/shopping-china/logo-word.webp" alt="Shopping China" className="hidden h-9 w-auto object-contain brightness-0 invert sm:block" />
             </HardLink>
-            <form ref={searchBox} onSubmit={submitSearch} className="relative mx-auto min-w-0 w-full max-w-3xl" role="search">
+            <form ref={searchBox} onSubmit={submitSearch} className="relative order-last mx-auto min-w-0 basis-full sm:order-none sm:basis-auto sm:flex-1 sm:max-w-3xl" role="search">
               <button type="submit" className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-[#002055] hover:bg-slate-100" aria-label="Pesquisar"><Search size={20} /></button>
               <input
                 type="search"
+                role="combobox"
                 value={search}
                 onFocus={() => setSearchOpen(true)}
                 onChange={(event) => updateSearch(event.target.value)}
@@ -123,29 +124,30 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
                 aria-label="Pesquisar produtos"
                 aria-expanded={searchOpen && normalize(search).length >= 2}
                 aria-controls="catalog-search-results"
+                aria-autocomplete="list"
                 aria-activedescendant={activeResult >= 0 ? `search-result-${activeResult}` : undefined}
                 autoComplete="off"
-                className="h-11 w-full rounded-full border-0 bg-white pl-12 pr-11 text-sm text-[#002055] outline-none ring-[#fcb92c] placeholder:text-slate-400 focus:ring-3"
+                className="h-11 w-full rounded-full border-0 bg-white pl-12 pr-11 text-[16px] text-[#002055] outline-none ring-[#fcb92c] placeholder:text-slate-400 focus:ring-3 sm:text-sm"
               />
               {search ? <button type="button" onClick={() => updateSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-[#002055]" aria-label="Limpar pesquisa"><X size={17} /></button> : null}
               {searchOpen && normalize(search).length >= 2 ? (
-                <div id="catalog-search-results" className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl" role="listbox">
+                <div id="catalog-search-results" className="absolute left-0 right-0 top-[calc(100%+8px)] max-h-[min(68vh,520px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl" role="listbox">
                   {searchLoading ? <p className="p-5 text-sm text-slate-500">Buscando produtos…</p> : null}
                   {searchError ? <p className="p-5 text-sm text-[#bd0811]">Não foi possível carregar a busca. Tente novamente.</p> : null}
                   {!searchLoading && !searchError && results.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhum produto encontrado.</p> : null}
                   {results.map((item, index) => (
-                    <HardLink id={`search-result-${index}`} key={item.id} href={`/produto/${item.slug}`} onMouseEnter={() => setActiveResult(index)} onClick={() => setSearchOpen(false)} role="option" aria-selected={index === activeResult} className={`flex items-center gap-3 border-b border-slate-100 px-4 py-3 ${index === activeResult ? "bg-slate-100" : "hover:bg-slate-50"}`}>
+                    <HardLink id={`search-result-${index}`} key={item.id} href={`/produto/${item.slug}`} onMouseEnter={() => setActiveResult(index)} onClick={() => setSearchOpen(false)} role="option" aria-selected={index === activeResult} className={`flex min-h-16 items-center gap-3 border-b border-slate-100 px-3 py-2.5 sm:px-4 sm:py-3 ${index === activeResult ? "bg-slate-100" : "hover:bg-slate-50"}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.image} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1" />
+                      <img src={item.image} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1 sm:h-14 sm:w-14" />
                       <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-semibold uppercase leading-4 text-[#002055]">{item.title}</span><span className="mt-1 block text-[11px] text-slate-400">Código {item.id}</span></span>
-                      <span className="shrink-0 text-xs font-bold text-[#bd0811]">{item.price ?? "Consulte"}</span>
+                      <span className="hidden shrink-0 text-xs font-bold text-[#bd0811] sm:block">{item.price ?? "Consulte"}</span>
                     </HardLink>
                   ))}
                   {results.length ? <HardLink href={`/busca?q=${encodeURIComponent(search.trim())}`} onClick={() => setSearchOpen(false)} className="flex items-center justify-between bg-slate-50 px-5 py-3 text-xs font-bold text-[#002055] hover:bg-slate-100"><span>Ver todos os resultados</span><span className="text-slate-400">{resultTotal.toLocaleString("pt-BR")} produtos</span></HardLink> : null}
                 </div>
               ) : null}
             </form>
-            <div className="flex shrink-0 items-center gap-1 lg:gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-1 lg:gap-2">
               <HardLink href="/entrar" className="header-action"><UserRound size={20} /><span className="hidden lg:inline">Conta</span></HardLink>
               <button type="button" onClick={openCart} className="header-action relative" aria-label={`Abrir carrinho com ${itemCount} itens`}><ShoppingBag size={20} /><span className="hidden sm:inline">Carrinho</span>{itemCount > 0 ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#fcb92c] px-1 text-[10px] font-bold text-[#002055]">{itemCount > 99 ? "99+" : itemCount}</span> : null}</button>
             </div>
