@@ -196,6 +196,18 @@ function bannerLabel(url) {
 function localBannerHref(sourceHref, label, productCatalog) {
   try {
     const url = new URL(sourceHref);
+    const normalizedLabel = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const campaignQuery = [
+      [/bambu\s*lab/, "Bambu Lab"],
+      [/landerfit/, "Landerfit"],
+      [/lata+ffa/, "Lattafa"],
+      [/mixsoon/, "Mixsoon"],
+    ].find(([pattern]) => pattern.test(normalizedLabel))?.[1];
+    if (campaignQuery) return `/busca?q=${encodeURIComponent(campaignQuery)}`;
+    if (url.searchParams.get("brands") === "[550]" || /\bmac\b/.test(normalizedLabel)) {
+      return "/busca?q=Mac%20Mini";
+    }
+
     const query = url.searchParams.get("query");
     if (query) return `/busca?q=${encodeURIComponent(query)}`;
 

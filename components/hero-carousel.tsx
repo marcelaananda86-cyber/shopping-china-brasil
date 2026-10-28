@@ -21,7 +21,7 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
       desktop: `/assets/shopping-china/hero-${index + 1}-desktop.webp`,
       mobile: `/assets/shopping-china/hero-${index + 1}-mobile.webp`,
       alt: banner.label ? `Destaque ${banner.label}` : `Destaque Shopping China ${index + 1}`,
-      href: banner.href,
+      href: resolveBannerHref(banner),
     })),
   ];
   const [active, setActive] = useState(0);
@@ -90,4 +90,14 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
       ) : null}
     </section>
   );
+}
+
+function resolveBannerHref(banner: Banner) {
+  const label = (banner.label ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/bambu\s*lab/.test(label) || label === "bambulab") return "/busca?q=Bambu%20Lab";
+  if (label.includes("landerfit")) return "/busca?q=Landerfit";
+  if (/lata+ffa/.test(label)) return "/busca?q=Lattafa";
+  if (label.includes("mixsoon")) return "/busca?q=Mixsoon";
+  if (/\bmac\b/.test(label)) return "/busca?q=Mac%20Mini";
+  return banner.href;
 }

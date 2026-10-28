@@ -131,7 +131,10 @@ function parseSearchHtml(html: string): SearchPageData | null {
   const productSectionIndex = html.indexOf('id="search-products-url"');
   if (productSectionIndex === -1) return null;
   const products = extractProductCards(html.slice(productSectionIndex));
-  const total = Number(html.match(/de\s*<b>(\d+)<\/b>\s*en total/)?.[1] ?? 0);
+  const reportedTotal = html.match(/de\s*<b>(\d+)<\/b>\s*en total/)?.[1];
+  // Shopping China omits the result counter when a search fits on one page.
+  // In that case the parsed cards are the complete result set, not an empty search.
+  const total = reportedTotal ? Number(reportedTotal) : products.length;
   const lastPage = Math.max(1, ...[...html.matchAll(/[?&]page=(\d+)/g)].map((match) => Number(match[1])));
   if (total > 0 && products.length === 0) return null;
   return { products, total, page: 1, lastPage };
