@@ -4,8 +4,9 @@ import { createSupabaseServerClient, hasSupabaseConfig } from "@/lib/supabase/se
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  if (origin && new URL(origin).origin !== request.nextUrl.origin) return Response.json({ error: "invalid_origin" }, { status: 403 });
+  if (!hasAllowedOrigin(request)) {
+    return Response.json({ error: "invalid_origin", message: "Origem do checkout não autorizada." }, { status: 403 });
+  }
   return forward(request, "POST");
 }
 
@@ -42,4 +43,36 @@ async function forward(request: NextRequest, method: "GET" | "POST") {
     status: response.status,
     headers: { "content-type": response.headers.get("content-type") ?? "application/json", "cache-control": "no-store" },
   });
+}
+
+function hasAllowedOrigin(request: NextRequest) {
+  const originHeader = request.headers.get("origin");
+  if (!originHeader) return true;
+
+  let origin: string;
+  try {
+    origin = new URL(originHeader).origin;
+  } catch {
+    return false;
+  }
+
+  const allowedOrigins = new Set<string>([request.nextUrl.origin]);
+  const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (publicSiteUrl) {
+    try {
+      allowedOrigins.add(new URL(publicSiteUrl).origin);
+    } catch {
+      // An invalid optional public URL must not break checkout requests.
+    }
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || request.headers.get("host");
+  if (host) {
+    const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const protocol = forwardedProto || request.nextUrl.protocol.replace(":", "") || "https";
+    allowedOrigins.add(`${protocol}://${host}`);
+  }
+
+  return allowedOrigins.has(origin);
 }
