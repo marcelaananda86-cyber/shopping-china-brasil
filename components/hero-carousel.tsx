@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, MapPinned, PackageCheck } from "lucide-react";
 import { HardLink } from "@/components/hard-link";
 
@@ -25,6 +25,7 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
     })),
   ];
   const [active, setActive] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (slides.length < 2) return;
@@ -36,8 +37,34 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
     setActive((current) => (current + direction + slides.length) % slides.length);
   }
 
+  function handleTouchStart(event: TouchEvent<HTMLElement>) {
+    const touch = event.touches.item(0);
+    if (touch) touchStart.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLElement>) {
+    const start = touchStart.current;
+    const touch = event.changedTouches.item(0);
+    touchStart.current = null;
+    if (!start || !touch) return;
+
+    const distanceX = touch.clientX - start.x;
+    const distanceY = touch.clientY - start.y;
+    if (Math.abs(distanceX) < 45 || Math.abs(distanceX) <= Math.abs(distanceY) * 1.15) return;
+
+    // Prevent the swipe from also activating the full-banner link.
+    event.preventDefault();
+    move(distanceX < 0 ? 1 : -1);
+  }
+
   return (
-    <section aria-label="Destaques Shopping China" aria-roledescription="carrossel" className="group relative overflow-hidden bg-[#00183f]">
+    <section
+      aria-label="Destaques Shopping China"
+      aria-roledescription="carrossel"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="group relative touch-pan-y overflow-hidden bg-[#00183f]"
+    >
       <div className="relative aspect-[4/3] w-full sm:aspect-[5/1]">
         {slides.map((slide, index) => (
           <article key={slide.desktop} aria-hidden={index !== active} className={`absolute inset-0 transition-opacity duration-700 ${index === active ? "z-10 opacity-100" : "pointer-events-none opacity-0"}`}>
