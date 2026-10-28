@@ -43,9 +43,11 @@ export async function GET() {
       product.mpn ? `<g:mpn>${xml(product.mpn)}</g:mpn>` : "",
       product.google_product_category ? `<g:google_product_category>${xml(product.google_product_category)}</g:google_product_category>` : "",
       !product.gtin && !product.mpn ? "<g:identifier_exists>no</g:identifier_exists>" : "",
-      ...(product.additional_image_urls ?? []).slice(0, 10).map((image) => `<g:additional_image_link>${xml(image)}</g:additional_image_link>`),
+      ...(product.additional_image_urls ?? []).slice(0, 10).map((_, index) =>
+        `<g:additional_image_link>${xml(merchantImageUrl(product.id, index + 1))}</g:additional_image_link>`
+      ),
     ].join("");
-    return `<item><g:id>SCB-${xml(product.id)}</g:id><title>${xml(product.title.slice(0, 150))}</title><description>${xml((product.description || product.title).slice(0, 5000))}</description><link>${xml(`${SITE_URL}/produto/${product.slug}`)}</link><g:image_link>${xml(product.image_url)}</g:image_link><g:availability>${xml(product.availability)}</g:availability><g:price>${(product.price_cents / 100).toFixed(2)} ${xml(product.currency)}</g:price><g:condition>${xml(product.condition)}</g:condition>${optional}</item>`;
+    return `<item><g:id>SCB-${xml(product.id)}</g:id><title>${xml(merchantTitle(product.title).slice(0, 150))}</title><description>${xml((product.description || product.title).slice(0, 5000))}</description><link>${xml(`${SITE_URL}/produto/${product.slug}`)}</link><g:image_link>${xml(merchantImageUrl(product.id))}</g:image_link><g:availability>${xml(product.availability)}</g:availability><g:price>${(product.price_cents / 100).toFixed(2)} ${xml(product.currency)}</g:price><g:condition>${xml(product.condition)}</g:condition>${optional}</item>`;
   }).join("");
   const body = `<?xml version="1.0" encoding="UTF-8"?><rss xmlns:g="http://base.google.com/ns/1.0" version="2.0"><channel><title>Shopping China Brasil</title><link>${xml(SITE_URL)}</link><description>Catálogo Shopping China Brasil</description>${items}</channel></rss>`;
   return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=900" } });
@@ -53,6 +55,29 @@ export async function GET() {
 
 type MerchantProduct = { id: string; slug: string; title: string; description: string; brand: string | null; gtin: string | null; mpn: string | null; condition: string; image_url: string; additional_image_urls: string[]; price_cents: number; currency: string; availability: string; google_product_category: string | null; updated_at: string };
 function xml(value: string) { return value.replace(/[<>&"']/g, (character) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[character]!); }
+
+function merchantImageUrl(productId: string, index = 0) {
+  return `${SITE_URL}/merchant-image/${encodeURIComponent(productId)}/${index}`;
+}
+
+const preservedMerchantTerms = new Set([
+  "3D", "4K", "5G", "8K", "A16", "AI", "AM", "AMD", "AMOLED", "CPU", "DDR4", "DDR5", "GB", "GHz",
+  "GPS", "GPU", "HD", "HDMI", "HDR", "Hz", "iPad", "iPhone", "LED", "MP", "OLED", "PC", "PS4", "PS5",
+  "RAM", "RJ45", "SSD", "TB", "TV", "UHD", "USB", "USB-C", "Wi-Fi", "Xbox",
+]);
+
+function merchantTitle(value: string) {
+  const letters = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
+  const uppercaseLetters = letters.replace(/[^A-ZÀ-ÖØ-Þ]/g, "");
+  if (!letters || uppercaseLetters.length / letters.length < 0.75) return value;
+
+  return value.toLocaleLowerCase("pt-BR").replace(/\b[\p{L}\p{N}][\p{L}\p{N}-]*\b/gu, (word, offset) => {
+    const preserved = [...preservedMerchantTerms].find((term) => term.toLocaleLowerCase("pt-BR") === word);
+    if (preserved) return preserved;
+    if (offset > 0 && /^(a|as|com|da|das|de|do|dos|e|em|para|por)$/.test(word)) return word;
+    return word.charAt(0).toLocaleUpperCase("pt-BR") + word.slice(1);
+  });
+}
 
 const restrictedProductPattern = /\b(cigarro|cigarette|tabaco|tobacco|vape|vaper|charuto|cachimbo|narguile|arma|pistola|revolver|rifle|municao|munição|cartucho de arma|adulto|erotico|erótico)\b/i;
 function isMerchantEligible(product: MerchantProduct) {
