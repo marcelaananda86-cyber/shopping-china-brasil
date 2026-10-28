@@ -2,24 +2,40 @@ export const dynamic = "force-dynamic";
 
 import { SITE_URL } from "@/lib/site-config";
 
+// Lote inicial, revisado manualmente, para a primeira análise da conta.
+// O catálogo completo só deve ser liberado depois que este conjunto estiver aprovado.
+const CURATED_PRODUCT_IDS = [
+  "1036065", "980834", "789059", "1051791", "883438", "920977", "1039430", "860483", "906073", "1034852",
+  "760395", "1070861", "721923", "893318", "847358", "949030", "1011529", "1011790", "1070868", "1058857",
+  "801561", "1072916", "717490", "601887", "601888", "773142", "1095239", "1094969", "1070157", "1073108",
+  "1090272", "1060084", "1069492", "1025207", "801824", "813141", "789057", "30946", "770943", "700074",
+  "815977", "888584", "795888", "716822", "799359", "779789", "624288", "825156", "915866", "796259",
+] as const;
+
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!supabaseUrl || !key) return new Response("Catálogo temporariamente indisponível", { status: 503 });
 
-  const products: MerchantProduct[] = [];
-  for (let from = 0; from < 30000; from += 1000) {
-    const response = await fetch(`${supabaseUrl}/rest/v1/merchant_products?select=id,slug,title,description,brand,gtin,mpn,condition,image_url,additional_image_urls,price_cents,currency,availability,google_product_category&order=id.asc`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}`, Range: `${from}-${from + 999}` },
-      next: { revalidate: 900 },
-    });
-    if (!response.ok) return new Response("Catalog feed is temporarily unavailable", { status: 503 });
-    const batch = await response.json() as MerchantProduct[];
-    products.push(...batch);
-    if (batch.length < 1000) break;
-  }
+  const params = new URLSearchParams({
+    select: "id,slug,title,description,brand,gtin,mpn,condition,image_url,additional_image_urls,price_cents,currency,availability,google_product_category,updated_at",
+    availability: "eq.in_stock",
+    price_cents: "gt.0",
+    brand: "not.is.null",
+    description: "not.eq.",
+    id: `in.(${CURATED_PRODUCT_IDS.join(",")})`,
+    limit: String(CURATED_PRODUCT_IDS.length),
+  });
+  const response = await fetch(`${supabaseUrl}/rest/v1/merchant_products?${params}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+    next: { revalidate: 900 },
+  });
+  if (!response.ok) return new Response("Catalog feed is temporarily unavailable", { status: 503 });
 
-  const eligibleProducts = products.filter(isMerchantEligible);
+  const products = await response.json() as MerchantProduct[];
+  const eligibleProducts = products
+    .filter(isMerchantEligible)
+    .sort((left, right) => CURATED_PRODUCT_IDS.indexOf(left.id as (typeof CURATED_PRODUCT_IDS)[number]) - CURATED_PRODUCT_IDS.indexOf(right.id as (typeof CURATED_PRODUCT_IDS)[number]));
   const items = eligibleProducts.map((product) => {
     const optional = [
       product.brand ? `<g:brand>${xml(product.brand)}</g:brand>` : "",
@@ -35,15 +51,15 @@ export async function GET() {
   return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=900" } });
 }
 
-type MerchantProduct = { id: string; slug: string; title: string; description: string; brand: string | null; gtin: string | null; mpn: string | null; condition: string; image_url: string; additional_image_urls: string[]; price_cents: number; currency: string; availability: string; google_product_category: string | null };
+type MerchantProduct = { id: string; slug: string; title: string; description: string; brand: string | null; gtin: string | null; mpn: string | null; condition: string; image_url: string; additional_image_urls: string[]; price_cents: number; currency: string; availability: string; google_product_category: string | null; updated_at: string };
 function xml(value: string) { return value.replace(/[<>&"']/g, (character) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[character]!); }
 
 const restrictedProductPattern = /\b(cigarro|cigarette|tabaco|tobacco|vape|vaper|charuto|cachimbo|narguile|arma|pistola|revolver|rifle|municao|munição|cartucho de arma|adulto|erotico|erótico)\b/i;
 function isMerchantEligible(product: MerchantProduct) {
   return Boolean(
     product.id && product.slug && product.title && product.brand && product.image_url &&
-    product.price_cents > 0 && product.currency === "BRL" &&
-    ["in_stock", "out_of_stock", "preorder", "backorder"].includes(product.availability) &&
+    product.description?.trim().length >= 250 &&
+    product.price_cents > 0 && product.currency === "BRL" && product.availability === "in_stock" &&
     !restrictedProductPattern.test(product.title),
   );
 }
