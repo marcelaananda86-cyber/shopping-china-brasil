@@ -45,7 +45,7 @@ export async function GET() {
       !product.gtin && !product.mpn ? "<g:identifier_exists>no</g:identifier_exists>" : "",
       ...(product.additional_image_urls ?? []).slice(0, 10).map((image) => `<g:additional_image_link>${xml(image)}</g:additional_image_link>`),
     ].join("");
-    return `<item><g:id>${xml(product.id)}</g:id><title>${xml(product.title.slice(0, 150))}</title><description>${xml((product.description || product.title).slice(0, 5000))}</description><link>${xml(`${SITE_URL}/produto/${product.slug}`)}</link><g:image_link>${xml(product.image_url)}</g:image_link><g:availability>${xml(product.availability)}</g:availability><g:price>${(product.price_cents / 100).toFixed(2)} ${xml(product.currency)}</g:price><g:condition>${xml(product.condition)}</g:condition>${optional}</item>`;
+    return `<item><g:id>SCB-${xml(product.id)}</g:id><title>${xml(product.title.slice(0, 150))}</title><description>${xml((product.description || product.title).slice(0, 5000))}</description><link>${xml(`${SITE_URL}/produto/${product.slug}`)}</link><g:image_link>${xml(product.image_url)}</g:image_link><g:availability>${xml(product.availability)}</g:availability><g:price>${(product.price_cents / 100).toFixed(2)} ${xml(product.currency)}</g:price><g:condition>${xml(product.condition)}</g:condition>${optional}</item>`;
   }).join("");
   const body = `<?xml version="1.0" encoding="UTF-8"?><rss xmlns:g="http://base.google.com/ns/1.0" version="2.0"><channel><title>Shopping China Brasil</title><link>${xml(SITE_URL)}</link><description>Catálogo Shopping China Brasil</description>${items}</channel></rss>`;
   return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=900" } });
