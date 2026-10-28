@@ -71,7 +71,7 @@ const PIX_ORDER_KEY = "shopping-china-brasil-pix-order-v1";
 const states = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 const fieldClass = "mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-[#002055] outline-none transition placeholder:text-slate-300 focus:border-[#002055] focus:ring-4 focus:ring-blue-950/5";
 
-export function CheckoutPageContent({ initialCustomer }: { initialCustomer: { name: string; email: string; phone: string } }) {
+export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit<CheckoutDraft, "cpf" | "accepted"> }) {
   const { items, hydrated, subtotal, hasUnknownPrices } = useCart();
   const exchangeRate = useExchangeRate();
   const [draft, setDraft] = useState<CheckoutDraft>(() => emptyDraft(initialCustomer));
@@ -157,21 +157,25 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: { na
     setSubmitting(true);
     setApiError("");
     try {
+      const sessionResponse = await fetch("/api/auth/guest", { method: "POST" });
+      if (!sessionResponse.ok) {
+        const sessionResult = await sessionResponse.json() as { message?: string };
+        throw new Error(sessionResult.message ?? "Não foi possível iniciar o checkout. Tente novamente.");
+      }
       const response = await fetch("/api/checkout/pix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           idempotencyKey: getPixAttemptKey(items, draft),
           items: items.map((item) => ({ id: item.id, quantity: item.quantity })),
-          customer: { name: draft.name, phone: draft.phone, document: draft.cpf },
+          customer: { name: draft.name, email: draft.email, phone: draft.phone, document: draft.cpf },
           shipping: { street: draft.street, number: draft.number, complement: draft.complement, neighborhood: draft.neighborhood, city: draft.city, state: draft.state, zipCode: draft.cep },
           utm: readUtm(),
         }),
       });
       const result = await response.json() as { success?: boolean; order?: PixOrder; message?: string; error?: string };
       if (response.status === 401) {
-        window.location.assign("/entrar?next=%2Fcheckout&aviso=Entre+novamente+para+gerar+o+PIX.");
-        return;
+        throw new Error("Sua sessão segura expirou. Tente gerar o PIX novamente.");
       }
       if (!response.ok || !result.order) throw new Error(result.message ?? "Não foi possível gerar o PIX. Tente novamente.");
       setPixOrder(result.order);
@@ -329,8 +333,8 @@ function EmptyCheckout() {
   return <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-20 text-center shadow-sm"><span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-400"><CreditCard size={34} /></span><h1 className="mt-5 text-3xl font-bold text-[#002055]">Seu checkout está vazio</h1><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">Adicione produtos ao carrinho antes de preencher os dados de entrega e pagamento.</p><HardLink href="/" className="mt-6 inline-flex rounded-full bg-[#002055] px-7 py-3.5 text-sm font-bold text-white">Explorar produtos</HardLink></div>;
 }
 
-function emptyDraft(customer: { name: string; email: string; phone: string }): CheckoutDraft {
-  return { name: customer.name, email: customer.email, cpf: "", phone: customer.phone, cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "", accepted: false };
+function emptyDraft(customer: Omit<CheckoutDraft, "cpf" | "accepted">): CheckoutDraft {
+  return { ...customer, cpf: "", accepted: false };
 }
 
 function validate(draft: CheckoutDraft) {

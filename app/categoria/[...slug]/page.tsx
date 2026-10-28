@@ -1,10 +1,24 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { HardLink } from "@/components/hard-link";
 import { getCategoryPage } from "@/lib/shopping-china";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const name = slug.at(-1)?.replaceAll("-", " ") ?? "Catálogo";
+  const title = name.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+  const canonical = `/categoria/${slug.join("/")}`;
+  return {
+    title,
+    description: `Compre ${name} com preço em reais, produtos originais e entrega no Brasil.`,
+    alternates: { canonical },
+    openGraph: { title: `${title} | Shopping China Brasil`, description: `Produtos de ${name} com entrega no Brasil.`, url: canonical },
+  };
+}
 
 export default async function CategoryPage({ params, searchParams }: { params: Promise<{ slug: string[] }>; searchParams: Promise<{ page?: string }> }) {
   const { slug } = await params;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ArrowRight, BadgeCheck, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import homeData from "@/public/data/home.json";
 import { HeroCarousel } from "@/components/hero-carousel";
@@ -5,7 +6,10 @@ import { ProductCard } from "@/components/product-card";
 import { HardLink } from "@/components/hard-link";
 import type { ProductCardData } from "@/lib/shopping-china";
 
-export default function Home() {
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
+export default async function Home() {
+  const liveSections = await getLiveHomeSections();
   return (
     <main>
       <HeroCarousel banners={homeData.banners} />
@@ -14,7 +18,7 @@ export default function Home() {
         <div className="page-shell grid grid-cols-1 divide-y divide-slate-200 py-2 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <TrustItem icon={<BadgeCheck />} title="Produtos originais" text="As melhores marcas do mundo" />
           <TrustItem icon={<MapPin />} title="Ciudad del Este" text="Estoque da filial principal" />
-          <TrustItem icon={<ShieldCheck />} title="Compra segura" text="Conta e pedidos protegidos" />
+          <TrustItem icon={<ShieldCheck />} title="Compra segura" text="Dados e pedidos protegidos" />
         </div>
       </section>
 
@@ -33,7 +37,7 @@ export default function Home() {
         </div>
       </section>
 
-      <ProductSection eyebrow="Seleção Shopping China" title="Oportunidades únicas" description="Produtos escolhidos com condições especiais por tempo limitado." products={homeData.sections.opportunities as ProductCardData[]} />
+      <ProductSection eyebrow="Seleção Shopping China" title="Oportunidades únicas" description="Produtos escolhidos com preços sincronizados com o catálogo atual." products={liveSections.opportunities} />
 
       <section className="my-8 bg-[#002055] text-white">
         <div className="page-shell grid items-center gap-6 py-10 md:grid-cols-[1fr_auto]">
@@ -45,10 +49,77 @@ export default function Home() {
         </div>
       </section>
 
-      <ProductSection eyebrow="Acabaram de chegar" title="Novos produtos" description="Lançamentos e novidades que entraram recentemente no catálogo." products={homeData.sections.releases as ProductCardData[]} />
-      <ProductSection eyebrow="Vale a pena conferir" title="Ofertas em destaque" description="Encontre produtos selecionados com preços especiais." products={homeData.sections.offers as ProductCardData[]} />
+      <ProductSection eyebrow="Acabaram de chegar" title="Novos produtos" description="Lançamentos e novidades que entraram recentemente no catálogo." products={liveSections.releases} />
+      <ProductSection eyebrow="Vale a pena conferir" title="Ofertas em destaque" description="Encontre produtos selecionados com preços atualizados." products={liveSections.offers} />
     </main>
   );
+}
+
+type LiveProduct = { id: string; slug: string; title: string; image_url: string; price_cents: number; availability: string };
+
+async function getLiveHomeSections() {
+  const fallback = {
+    opportunities: homeData.sections.opportunities as ProductCardData[],
+    releases: homeData.sections.releases as ProductCardData[],
+    offers: homeData.sections.offers as ProductCardData[],
+  };
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !key) return fallback;
+  const all = [...fallback.opportunities, ...fallback.releases, ...fallback.offers];
+  const ids = [...new Set(all.map((product) => product.id))];
+  try {
+    const params = new URLSearchParams({
+      select: "id,slug,title,image_url,price_cents,availability",
+      id: `in.(${ids.join(",")})`,
+    });
+    const headers = { apikey: key, Authorization: `Bearer ${key}` };
+    const [response, newestResponse] = await Promise.all([
+      fetch(`${supabaseUrl}/rest/v1/merchant_products?${params}`, { headers, next: { revalidate: 900 } }),
+      fetch(`${supabaseUrl}/rest/v1/merchant_products?select=id,slug,title,image_url,price_cents,availability&availability=eq.in_stock&price_cents=gt.0&order=updated_at.desc&limit=36`, { headers, next: { revalidate: 900 } }),
+    ]);
+    if (!response.ok || !newestResponse.ok) return withoutStalePrices(fallback);
+    const products = await response.json() as LiveProduct[];
+    const newest = await newestResponse.json() as LiveProduct[];
+    const liveById = new Map(products.map((product) => [product.id, product]));
+    const used = new Set<string>();
+    const toCard = (product: LiveProduct): ProductCardData => ({
+      id: product.id,
+      slug: product.slug,
+      title: product.title,
+      image: product.image_url,
+      price: formatBrl(product.price_cents),
+      oldPrice: null,
+      discount: null,
+    });
+    const hydrate = (items: ProductCardData[]) => {
+      const cards = items.flatMap((fallbackProduct) => {
+      const product = liveById.get(fallbackProduct.id);
+        if (!product || used.has(product.id)) return [];
+        used.add(product.id);
+        return [toCard(product)];
+      });
+      for (const product of newest) {
+        if (cards.length >= items.length) break;
+        if (used.has(product.id)) continue;
+        used.add(product.id);
+        cards.push(toCard(product));
+      }
+      return cards;
+    };
+    return { opportunities: hydrate(fallback.opportunities), releases: hydrate(fallback.releases), offers: hydrate(fallback.offers) };
+  } catch {
+    return withoutStalePrices(fallback);
+  }
+}
+
+function withoutStalePrices(sections: { opportunities: ProductCardData[]; releases: ProductCardData[]; offers: ProductCardData[] }) {
+  const clean = (items: ProductCardData[]) => items.map((product) => ({ ...product, price: null, oldPrice: null, discount: null }));
+  return { opportunities: clean(sections.opportunities), releases: clean(sections.releases), offers: clean(sections.offers) };
+}
+
+function formatBrl(cents: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
 function TrustItem({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {

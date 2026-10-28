@@ -39,7 +39,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
         <div className="mt-8 grid gap-5 text-sm text-white/75">
           <Feature icon={<PackageSearch />} title="Acompanhe seus pedidos" text="Consulte status, valores e código de rastreamento." />
           <Feature icon={<Database />} title="Histórico de compras" text="Acesse seus pedidos anteriores com segurança em qualquer dispositivo." />
-          <Feature icon={<LockKeyhole />} title="Compra somente com conta" text="A autenticação é obrigatória antes do checkout para proteger seus dados e seu pedido." />
+          <Feature icon={<LockKeyhole />} title="Dados salvos com segurança" text="Cadastre endereço e contato para preencher suas próximas compras automaticamente." />
         </div>
       </div>
 
@@ -47,7 +47,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef3fa] text-[#bd0811]"><UserRound size={26} /></span>
         <p className="mt-6 text-xs font-bold uppercase tracking-[.18em] text-[#bd0811]">Área do cliente</p>
         <h2 className="mt-2 text-2xl font-bold text-[#002055]">{signup ? "Criar minha conta" : "Entrar na minha conta"}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-500">{signup ? "Cadastre-se gratuitamente para comprar e acompanhar seus pedidos." : "Acesse sua conta para continuar sua compra com segurança."}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">{signup ? "Cadastre-se gratuitamente para salvar endereço e acompanhar seus pedidos." : "Acesse sua conta para consultar pedidos e usar seus dados salvos."}</p>
 
         {params.aviso ? <p className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-[#002055]"><strong>Conta necessária.</strong> {params.aviso}</p> : null}
         {params.erro ? <p className="mt-5 rounded-xl bg-red-50 p-3 text-xs leading-5 text-[#bd0811]">{params.erro}</p> : null}

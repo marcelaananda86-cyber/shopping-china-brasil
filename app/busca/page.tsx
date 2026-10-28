@@ -18,7 +18,7 @@ const SORT_OPTIONS: Array<{ value: SearchSort; label: string }> = [
   { value: "price-desc", label: "Maior preço" },
 ];
 
-export const metadata: Metadata = { title: "Busca de produtos" };
+export const metadata: Metadata = { title: "Busca de produtos", robots: { index: false, follow: true } };
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> }) {

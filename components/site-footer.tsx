@@ -27,7 +27,7 @@ export function SiteFooter() {
         <div>
           <h3 className="footer-title">Institucional</h3>
           <div className="mt-4 grid gap-2 text-sm text-white/75">
-            <a href="https://www.shoppingchina.com.br/institucional-br" target="_blank" rel="noreferrer" className="hover:text-white">Sobre o Shopping China</a>
+            <HardLink href="/sobre" className="hover:text-white">Sobre o Shopping China</HardLink>
             <a href="https://www.shoppingchina.com.br/sc-blogs" target="_blank" rel="noreferrer" className="hover:text-white">Blog</a>
             <a href="https://www.shoppingchina.com.br/baixar-app" target="_blank" rel="noreferrer" className="hover:text-white">Aplicativo</a>
             <HardLink href="/contato" className="hover:text-white">Contato</HardLink>

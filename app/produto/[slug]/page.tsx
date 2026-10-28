@@ -1,17 +1,39 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { BadgeCheck, Clock3, MapPin, ShieldCheck, Truck } from "lucide-react";
 import { ProductGallery } from "@/components/product-gallery";
 import { HardLink } from "@/components/hard-link";
 import { ProductPurchasePanel } from "@/components/product-purchase-panel";
 import { getProductDetail } from "@/lib/shopping-china";
+import { offerShippingDetails, ORGANIZATION_ID, RETURN_POLICY_ID, SITE_URL } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductDetail(slug);
+  if (!product) return { title: "Produto não encontrado", robots: { index: false, follow: false } };
+  const description = (product.description || `${product.title} com preço em reais e entrega no Brasil.`).replace(/\s+/g, " ").slice(0, 160);
+  const canonical = `/produto/${product.slug}`;
+  return {
+    title: product.title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      url: canonical,
+      title: product.title,
+      description,
+      images: product.images.slice(0, 6).map((url) => ({ url, alt: product.title })),
+    },
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await getProductDetail(slug);
   if (!product) notFound();
-  const numericPrice = product.price ? Number(product.price.replace(/[^\d,]/g, "").replace(",", ".")) : null;
+  const numericPrice = parsePrice(product.price);
   const available = /InStock|in_stock/i.test(product.availability);
   const productSchema = {
     "@context": "https://schema.org",
@@ -23,14 +45,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
     image: product.images,
     description: product.description,
+    url: `${SITE_URL}/produto/${product.slug}`,
     offers: numericPrice === null ? undefined : {
       "@type": "Offer",
+      url: `${SITE_URL}/produto/${product.slug}`,
       price: numericPrice.toFixed(2),
       priceCurrency: "BRL",
       availability: available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
-      shippingDetails: { "@type": "OfferShippingDetails", deliveryTime: { "@type": "ShippingDeliveryTime", transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 20, unitCode: "DAY" } } },
-      hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "BR", returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: 7, returnMethod: "https://schema.org/ReturnByMail" },
+      seller: { "@id": ORGANIZATION_ID },
+      shippingDetails: offerShippingDetails(),
+      hasMerchantReturnPolicy: { "@id": RETURN_POLICY_ID },
     },
   };
   return (
@@ -74,4 +99,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
 function Info({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 text-[#002055] [&_svg]:shrink-0 [&_svg]:text-[#bd0811]"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">{icon}</span><div><p className="text-sm font-bold">{title}</p><p className="text-xs leading-5 text-slate-500">{text}</p></div></div>;
+}
+
+function parsePrice(value: string | null) {
+  if (!value) return null;
+  const normalized = value.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
+  const result = Number(normalized);
+  return Number.isFinite(result) && result > 0 ? result : null;
 }

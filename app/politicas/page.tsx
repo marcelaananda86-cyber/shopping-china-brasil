@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FileText, LockKeyhole, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { HardLink } from "@/components/hard-link";
 
-export const metadata: Metadata = { title: "Políticas da loja" };
+export const metadata: Metadata = { title: "Políticas da loja", alternates: { canonical: "/politicas" } };
 const policies = [
   ["/politicas/entrega", "Política de entrega", "Prazo de até 20 dias, rastreamento e recebimento.", <Truck key="truck" />],
   ["/politicas/trocas-e-devolucoes", "Trocas, devoluções e reembolsos", "Arrependimento, defeitos, métodos e prazos.", <RotateCcw key="return" />],

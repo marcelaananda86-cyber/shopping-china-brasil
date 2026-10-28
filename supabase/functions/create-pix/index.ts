@@ -5,7 +5,7 @@ type CartInput = { id: string; quantity: number };
 type CheckoutInput = {
   idempotencyKey: string;
   items: CartInput[];
-  customer: { name: string; phone: string; document: string };
+  customer: { name: string; email: string; phone: string; document: string };
   shipping: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string };
   utm?: Partial<Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>>;
 };
@@ -25,7 +25,7 @@ Deno.serve(async (request) => {
 
     const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
     const { data: { user }, error: authError } = await authClient.auth.getUser();
-    if (authError || !user?.email) return json({ error: "authentication_required" }, 401);
+    if (authError || !user) return json({ error: "authentication_required" }, 401);
 
     const service = createClient(supabaseUrl, serviceKey);
     if (request.method === "GET") {
@@ -39,9 +39,10 @@ Deno.serve(async (request) => {
     const input = await request.json() as CheckoutInput;
     const validationError = validateInput(input);
     if (validationError) return json({ error: "invalid_checkout", message: validationError }, 400);
+    const customerEmail = user.email ?? input.customer.email.trim().toLowerCase();
 
     const existing = await service.from("orders").select("id").eq("customer_id", user.id).eq("checkout_attempt_id", input.idempotencyKey).maybeSingle();
-    if (existing.data?.id) return await ensurePayments(service, existing.data.id, user.id, user.email, input);
+    if (existing.data?.id) return await ensurePayments(service, existing.data.id, user.id, customerEmail, input);
 
     const uniqueIds = [...new Set(input.items.map((item) => item.id))];
     const { data: products, error: productError } = await service.from("products")
@@ -91,7 +92,7 @@ Deno.serve(async (request) => {
       shipping_deadline_days: 20,
       shipping_address: shipping,
       customer_name: input.customer.name.trim(),
-      customer_email: user.email,
+      customer_email: customerEmail,
       customer_phone: digits(input.customer.phone),
       customer_document: digits(input.customer.document),
       checkout_attempt_id: input.idempotencyKey,
@@ -109,8 +110,8 @@ Deno.serve(async (request) => {
     })));
     if (itemsError) throw itemsError;
 
-    await service.from("profiles").update({ name: input.customer.name.trim(), phone: digits(input.customer.phone) }).eq("id", user.id);
-    return await ensurePayments(service, order.id, user.id, user.email, input);
+    await service.from("profiles").update({ name: input.customer.name.trim(), email: customerEmail, phone: digits(input.customer.phone) }).eq("id", user.id);
+    return await ensurePayments(service, order.id, user.id, customerEmail, input);
   } catch (error) {
     if (error instanceof CheckoutError) return json({ error: error.code, message: error.message }, error.status);
     console.error(error);
@@ -194,6 +195,7 @@ function validateInput(input: CheckoutInput) {
   if (!Array.isArray(input.items) || input.items.length < 1 || input.items.length > 50) return "Carrinho inválido.";
   if (input.items.some((item) => !item.id || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99)) return "Quantidade inválida.";
   if (input.customer?.name?.trim().split(/\s+/).length < 2) return "Informe o nome completo.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.customer?.email?.trim() ?? "")) return "Informe um e-mail válido.";
   if (!/^\d{10,11}$/.test(digits(input.customer?.phone ?? ""))) return "Informe um telefone válido.";
   if (!validCpf(input.customer?.document ?? "")) return "Informe um CPF válido.";
   const shipping = input.shipping;

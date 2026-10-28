@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PolicyPage } from "@/components/policy-page";
-export const metadata: Metadata = { title: "Política de entrega" };
+export const metadata: Metadata = { title: "Política de entrega", alternates: { canonical: "/politicas/entrega" } };
 export default function Page() { return <PolicyPage eyebrow="Envio para o Brasil" title="Política de entrega" intro="Nosso compromisso é entregar o pedido no endereço informado em até 20 dias corridos após a confirmação do pagamento." sections={[
   { title: "Prazo de entrega", paragraphs: ["O prazo máximo é de 20 dias corridos, contado a partir da confirmação integral do pagamento. O prazo estimado e o custo do frete são apresentados antes da confirmação do pedido."], items: ["Separação e conferência do produto antes do envio.", "Transporte internacional, processamento aplicável e entrega no endereço brasileiro.", "Atualizações de status na área Minha Conta e envio do código de rastreamento quando disponível."] },
   { title: "Valores de frete por região", paragraphs: ["O endereço é consultado pelo CEP e o valor do frete é calculado automaticamente antes da geração do PIX."], items: ["Região Sul — Paraná, Santa Catarina e Rio Grande do Sul: R$ 49,90.", "Sudeste e Centro-Oeste — São Paulo, Rio de Janeiro, Minas Gerais, Espírito Santo, Distrito Federal, Goiás, Mato Grosso e Mato Grosso do Sul: R$ 79,90.", "Norte e Nordeste — demais estados atendidos: R$ 94,90."] },
