@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     images: [{ url: "/assets/shopping-china/logo-footer.webp", alt: "Shopping China Brasil" }],
   },
   robots: { index: true, follow: true },
+  verification: {
+    google: "-cSCqvJMcq5wJalQIyPvlGqIJRrfctH37SfrIPUhwMI",
+  },
   icons: {
     icon: "/assets/shopping-china/logo-mark.webp",
     shortcut: "/assets/shopping-china/logo-mark.webp",
