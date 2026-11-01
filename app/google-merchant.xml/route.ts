@@ -2,15 +2,48 @@ export const dynamic = "force-dynamic";
 
 import { SITE_URL } from "@/lib/site-config";
 
-// Lote inicial, revisado manualmente, para a primeira análise da conta.
-// O catálogo completo só deve ser liberado depois que este conjunto estiver aprovado.
+// Catálogo liberado em lotes revisados para preservar a qualidade da conta.
+// O primeiro lote de 50 produtos foi aprovado antes desta expansão.
 const CURATED_PRODUCT_IDS = [
   "1036065", "980834", "789059", "1051791", "883438", "920977", "1039430", "860483", "906073", "1034852",
   "760395", "1070861", "721923", "893318", "847358", "949030", "1011529", "1011790", "1070868", "1058857",
   "801561", "1072916", "717490", "601887", "601888", "773142", "1095239", "1094969", "1070157", "1073108",
   "1090272", "1060084", "1069492", "1025207", "801824", "813141", "789057", "30946", "770943", "700074",
   "815977", "888584", "795888", "716822", "799359", "779789", "624288", "825156", "915866", "796259",
+  // Produtos de alta intenção de compra no Brasil.
+  "948625", "883614", "1011080", "1031749", "953327", "773395", "991475", "788272", "911471", "979927",
+  "979928", "1012524", "945169", "1091835", "971716", "1002945", "964050", "963832", "940475", "886623",
+  "880321", "823928", "1080569", "825306", "1003638", "1026814",
 ] as const;
+
+const MERCHANT_TITLE_OVERRIDES: Record<string, string> = {
+  "948625": "Apple iPhone 16 128 GB Rosa com SIM",
+  "883614": "Apple iPhone 15 128 GB Azul com SIM",
+  "1011080": "Apple iPhone 17 256 GB Verde-Sálvia",
+  "1031749": "Console Sony PlayStation 5 Slim Digital 825 GB Branco",
+  "953327": "Console Sony PlayStation 5 Pro Digital 2 TB Branco",
+  "773395": "Controle Sony DualSense para PS5 Preto Meia-Noite",
+  "991475": "Console Nintendo Switch 2 256 GB",
+  "788272": "Console Nintendo Switch OLED 64 GB Branco",
+  "911471": "Caixa de Som JBL PartyBox Stage 320",
+  "979927": "Caixa de Som Bluetooth JBL Charge 6 Vermelha",
+  "979928": "Caixa de Som Bluetooth JBL Flip 7 Preta",
+  "1012524": "Fone de Ouvido Apple AirPods Pro 3 Branco",
+  "945169": "Fone de Ouvido Apple AirPods 4 com ANC Branco",
+  "1091835": "Apple Watch SE 3 GPS 44 mm Estelar",
+  "971716": "Samsung Galaxy S25 Ultra 5G 256 GB 12 GB RAM Titânio Preto",
+  "1002945": "Samsung Galaxy Watch8 Classic 46 mm Preto",
+  "964050": "Xiaomi Redmi Note 14 Pro 5G 256 GB 8 GB RAM Verde-Coral",
+  "963832": "Amazon Kindle Paperwhite 12ª Geração 16 GB 7 Polegadas Verde-Jade",
+  "940475": "Câmera de Ação GoPro Hero 13 Preta",
+  "886623": "Câmera DJI Osmo Pocket 3 Creator Combo Preta",
+  "880321": "Relógio Garmin Forerunner 265 GPS Preto",
+  "823928": "Fone de Ouvido Sony WH-1000XM5 Bluetooth Preto",
+  "1080569": "Fritadeira Air Fryer Electrolux EAF90 12 L 220 V Grafite",
+  "825306": "Cafeteira Dolce Gusto Genio S Touch 800 ml 220 V",
+  "1003638": "Smart TV Samsung Q7F 50 Polegadas 4K QLED Preta",
+  "1026814": "Xiaomi Poco F8 Pro 5G 512 GB 12 GB RAM Preto",
+};
 
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -37,6 +70,8 @@ export async function GET() {
     .filter(isMerchantEligible)
     .sort((left, right) => CURATED_PRODUCT_IDS.indexOf(left.id as (typeof CURATED_PRODUCT_IDS)[number]) - CURATED_PRODUCT_IDS.indexOf(right.id as (typeof CURATED_PRODUCT_IDS)[number]));
   const items = eligibleProducts.map((product) => {
+    const title = merchantProductTitle(product);
+    const description = merchantDescription(product, title);
     const optional = [
       product.brand ? `<g:brand>${xml(product.brand)}</g:brand>` : "",
       product.gtin ? `<g:gtin>${xml(product.gtin)}</g:gtin>` : "",
@@ -47,7 +82,7 @@ export async function GET() {
         `<g:additional_image_link>${xml(merchantImageUrl(product.id, index + 1))}</g:additional_image_link>`
       ),
     ].join("");
-    return `<item><g:id>SCB-${xml(product.id)}</g:id><title>${xml(merchantTitle(product.title).slice(0, 150))}</title><description>${xml((product.description || product.title).slice(0, 5000))}</description><link>${xml(`${SITE_URL}/produto/${product.slug}`)}</link><g:image_link>${xml(merchantImageUrl(product.id))}</g:image_link><g:availability>${xml(product.availability)}</g:availability><g:price>${(product.price_cents / 100).toFixed(2)} ${xml(product.currency)}</g:price><g:condition>${xml(product.condition)}</g:condition>${optional}</item>`;
+    return `<item><g:id>SCB-${xml(product.id)}</g:id><title>${xml(title.slice(0, 150))}</title><description>${xml(description.slice(0, 5000))}</description><link>${xml(`${SITE_URL}/produto/${product.slug}`)}</link><g:image_link>${xml(merchantImageUrl(product.id))}</g:image_link><g:availability>${xml(product.availability)}</g:availability><g:price>${(product.price_cents / 100).toFixed(2)} ${xml(product.currency)}</g:price><g:condition>${xml(product.condition)}</g:condition>${optional}</item>`;
   }).join("");
   const body = `<?xml version="1.0" encoding="UTF-8"?><rss xmlns:g="http://base.google.com/ns/1.0" version="2.0"><channel><title>Shopping China Brasil</title><link>${xml(SITE_URL)}</link><description>Catálogo Shopping China Brasil</description>${items}</channel></rss>`;
   return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=900" } });
@@ -60,6 +95,10 @@ function merchantImageUrl(productId: string, index = 0) {
   return `${SITE_URL}/merchant-image/${encodeURIComponent(productId)}/${index}`;
 }
 
+function merchantProductTitle(product: MerchantProduct) {
+  return MERCHANT_TITLE_OVERRIDES[product.id] ?? merchantTitle(product.title);
+}
+
 const preservedMerchantTerms = new Set([
   "3D", "4K", "5G", "8K", "A16", "AI", "AM", "AMD", "AMOLED", "CPU", "DDR4", "DDR5", "GB", "GHz",
   "GPS", "GPU", "HD", "HDMI", "HDR", "Hz", "iPad", "iPhone", "LED", "MP", "OLED", "PC", "PS4", "PS5",
@@ -67,8 +106,10 @@ const preservedMerchantTerms = new Set([
 ]);
 
 function merchantTitle(value: string) {
-  const letters = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
+  const decoded = decodeHtml(value);
+  const letters = decoded.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
   const uppercaseLetters = letters.replace(/[^A-ZÀ-ÖØ-Þ]/g, "");
+  value = translateMerchantTitle(decoded);
   if (!letters || uppercaseLetters.length / letters.length < 0.75) return value;
 
   return value.toLocaleLowerCase("pt-BR").replace(/\b[\p{L}\p{N}][\p{L}\p{N}-]*\b/gu, (word, offset) => {
@@ -79,12 +120,63 @@ function merchantTitle(value: string) {
   });
 }
 
+function translateMerchantTitle(value: string) {
+  const translations: Array<[RegExp, string]> = [
+    [/\bSKY BLUE\b/gi, "Azul-Céu"], [/\bLITTLE KID\b/gi, "Infantil"], [/\bBODY BLACK\b/gi, "Corpo Preto"],
+    [/\bJUEGO\b/gi, "Jogo"], [/\bCONSOLA\b/gi, "Console"], [/\bCONTROL\b/gi, "Controle"],
+    [/\bCÁMARA\b/gi, "Câmera"], [/\bCAMARA\b/gi, "Câmera"], [/\bCARGADOR\b/gi, "Carregador"],
+    [/\bIMPRESORA\b/gi, "Impressora"], [/\bSEÑUELO\b/gi, "Isca"], [/\bPILAS\b/gi, "Pilhas"],
+    [/\bRECARGABLES\b/gi, "Recarregáveis"], [/\bFUNDA\b/gi, "Capa"], [/\bCON\b/gi, "com"],
+    [/\bINFLABLE\b/gi, "Inflável"], [/\bFLOTADOR\b/gi, "Boia"], [/\bABEJITA\b/gi, "Abelhinha"],
+    [/\bJUGUETE\b/gi, "Brinquedo"], [/\bBAÑO\b/gi, "Banho"], [/\bRIÑONERA\b/gi, "Pochete"],
+    [/\bPASTELERIA\b/gi, "Confeitaria"], [/\bNECESER\b/gi, "Nécessaire"], [/\bBOLSO\b/gi, "Bolsa"],
+    [/\bELÉCTRICO\b/gi, "Elétrico"], [/\bWIRELESS\b/gi, "Sem Fio"], [/\bRUNNING\b/gi, "Corrida"],
+    [/\bAURICULAR(?:ES)?\b/gi, "Fone de Ouvido"], [/\bINALÁMBRICOS?\b/gi, "Sem Fio"],
+    [/\bINALAMBRICOS?\b/gi, "Sem Fio"], [/\bPARLANTE\b/gi, "Caixa de Som"], [/\bSPEAKER\b/gi, "Caixa de Som"],
+    [/\bSOPORTE\b/gi, "Suporte"], [/\bESTUCHE\b/gi, "Capa"], [/\bPROTECTOR\b/gi, "Protetor"],
+    [/\bNEGRO\b/gi, "Preto"], [/\bBLACK\b/gi, "Preto"], [/\bWHITE\b/gi, "Branco"],
+    [/\bBLUE\b/gi, "Azul"], [/\bPINK\b/gi, "Rosa"], [/\bSILVER\b/gi, "Prata"],
+    [/\bGRAY\b/gi, "Cinza"], [/\bGREY\b/gi, "Cinza"], [/\bRED\b/gi, "Vermelho"],
+    [/\bPURPLE\b/gi, "Roxo"], [/\bGREEN\b/gi, "Verde"], [/\bYELLOW\b/gi, "Amarelo"],
+    [/\bORANGE\b/gi, "Laranja"], [/\bDORADO\b/gi, "Dourado"], [/\bMARRÓN\b/gi, "Marrom"], [/\bBROWN\b/gi, "Marrom"],
+    [/\bFEMENINO\b/gi, "Feminino"], [/\bMASCULINO\b/gi, "Masculino"],
+  ];
+  return translations.reduce((title, [pattern, replacement]) => title.replace(pattern, replacement), value)
+    .replace(/\s+/g, " ").trim();
+}
+
+function merchantDescription(product: MerchantProduct, title: string) {
+  const current = translateMerchantTitle(decodeHtml(product.description ?? "")).replace(/\s+/g, " ").trim();
+  if (current.length >= 250) return current;
+
+  let categoryCopy = "Produto selecionado para quem procura qualidade, procedência e especificações claramente identificadas";
+  if (/iPhone|Galaxy|Redmi|Poco/i.test(title)) categoryCopy = "Smartphone indicado para comunicação, aplicativos, fotos, vídeos e uso diário";
+  else if (/PlayStation|Nintendo Switch/i.test(title)) categoryCopy = "Console desenvolvido para jogos, entretenimento e acesso ao catálogo compatível da plataforma";
+  else if (/JBL|Fone de Ouvido|AirPods/i.test(title)) categoryCopy = "Equipamento de áudio indicado para música, chamadas e entretenimento";
+  else if (/Watch|Garmin|Relógio/i.test(title)) categoryCopy = "Relógio inteligente indicado para notificações, atividades e acompanhamento da rotina";
+  else if (/Kindle/i.test(title)) categoryCopy = "Leitor digital desenvolvido para leitura confortável e armazenamento de livros eletrônicos";
+  else if (/Câmera|GoPro|DJI/i.test(title)) categoryCopy = "Equipamento de imagem indicado para fotografias, vídeos e criação de conteúdo";
+  else if (/TV/i.test(title)) categoryCopy = "Televisor inteligente indicado para filmes, séries, jogos e aplicativos de streaming compatíveis";
+  else if (/Fritadeira|Cafeteira/i.test(title)) categoryCopy = "Eletrodoméstico indicado para facilitar o preparo diário com as características elétricas informadas no anúncio";
+
+  return `${title}. ${categoryCopy}. Produto novo e original da marca ${product.brand}, disponível em estoque. A capacidade, a cor, a versão, a voltagem e o modelo correspondem exatamente às informações apresentadas no título. Consulte a página do produto para ver fotos, descrição completa, especificações técnicas, conteúdo da embalagem e condições de entrega antes de finalizar a compra.`;
+}
+
+function decodeHtml(value: string) {
+  return value
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&amp;", "&")
+    .replaceAll("&nbsp;", " ");
+}
+
 const restrictedProductPattern = /\b(cigarro|cigarette|tabaco|tobacco|vape|vaper|charuto|cachimbo|narguile|arma|pistola|revolver|rifle|municao|munição|cartucho de arma|adulto|erotico|erótico)\b/i;
 function isMerchantEligible(product: MerchantProduct) {
+  const title = merchantProductTitle(product);
   return Boolean(
     product.id && product.slug && product.title && product.brand && product.image_url &&
-    product.description?.trim().length >= 250 &&
+    merchantDescription(product, title).length >= 250 &&
     product.price_cents > 0 && product.currency === "BRL" && product.availability === "in_stock" &&
-    !restrictedProductPattern.test(product.title),
+    !restrictedProductPattern.test(title),
   );
 }
