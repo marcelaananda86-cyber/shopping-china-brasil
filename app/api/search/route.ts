@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSearchPage, type SearchSort } from "@/lib/shopping-china";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const SORTS = new Set<SearchSort>(["relevance", "newest", "name-asc", "name-desc", "price-asc", "price-desc"]);
 
 export async function GET(request: Request) {
@@ -17,6 +20,8 @@ export async function GET(request: Request) {
   if (!result) return NextResponse.json({ error: "Não foi possível consultar o catálogo agora." }, { status: 502 });
 
   return NextResponse.json({ ...result, products: result.products.slice(0, limit) }, {
-    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+    // Netlify's edge cache can collapse query-string variants for this route.
+    // Search responses must never be shared between different terms.
+    headers: { "Cache-Control": "private, no-store, max-age=0", Vary: "Accept-Encoding" },
   });
 }

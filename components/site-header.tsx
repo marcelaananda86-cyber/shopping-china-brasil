@@ -37,7 +37,11 @@ export function SiteHeader({ categories }: { categories: CategoryData[] }) {
       setSearchLoading(true);
       setSearchError(false);
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`, { signal: controller.signal });
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`, {
+          signal: controller.signal,
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
         if (!response.ok) throw new Error("Falha ao consultar catálogo");
         const data = await response.json() as { products: ProductCardData[]; total: number };
         setResults(data.products);

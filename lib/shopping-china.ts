@@ -57,7 +57,7 @@ const SEARCH_PAGE_SIZE = 24;
 const MAX_RELEVANCE_PAGES = 8;
 const ACCESSORY_TERMS = [
   "adaptador", "auricular", "base", "bateria", "bolsa", "cabo", "capa", "carregador", "case", "cooler",
-  "controle", "control", "fone", "headset", "jogo", "juego", "pelicula", "protetor", "soporte", "suporte", "volante",
+  "controle", "control", "estojo", "fone", "headset", "jogo", "juego", "maleta", "mochila", "pelicula", "protetor", "soporte", "suporte", "volante",
 ];
 const MAIN_PRODUCT_TERMS = ["camera", "celular", "console", "impressora", "monitor", "notebook", "perfume", "relogio", "smartphone", "smartwatch", "tablet", "televisor", "tv"];
 const SEARCH_TERM_ALIASES: Record<string, string[]> = {
@@ -77,6 +77,9 @@ export async function getSearchPage(query: string, page = 1, sort: SearchSort = 
   if (cleanQuery.length < 2) return { products: [], total: 0, page: 1, lastPage: 1 };
 
   const safePage = Math.max(1, page);
+
+  const databaseResult = await getDatabaseSearchPage(cleanQuery, safePage, sort);
+  if (databaseResult?.total) return databaseResult;
 
   try {
     const firstPageToFetch = sort === "relevance" ? 1 : safePage;
@@ -114,6 +117,89 @@ export async function getSearchPage(query: string, page = 1, sort: SearchSort = 
   }
 }
 
+async function getDatabaseSearchPage(query: string, page: number, sort: SearchSort): Promise<SearchPageData | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+
+  const searchableQuery = query.replace(/[*,%]/g, " ").replace(/\s+/g, " ").trim();
+  if (searchableQuery.length < 2) return null;
+
+  const params = new URLSearchParams({
+    select: "id,slug,title,image_url,price_cents,updated_at",
+    active: "eq.true",
+    availability: "eq.in_stock",
+  });
+  const searchPatterns = databaseSearchPatterns(searchableQuery);
+  if (searchPatterns.length === 1) {
+    params.set("title", `ilike.*${searchPatterns[0]}*`);
+  } else {
+    params.set("or", `(${searchPatterns.map((pattern) => `title.ilike.*${pattern}*`).join(",")})`);
+  }
+
+  if (sort === "relevance") {
+    params.set("limit", "500");
+  } else {
+    const order = {
+      newest: "updated_at.desc",
+      "name-asc": "title.asc",
+      "name-desc": "title.desc",
+      "price-asc": "price_cents.asc",
+      "price-desc": "price_cents.desc",
+    }[sort];
+    params.set("order", order ?? "updated_at.desc");
+    params.set("limit", String(SEARCH_PAGE_SIZE));
+    params.set("offset", String((page - 1) * SEARCH_PAGE_SIZE));
+  }
+
+  try {
+    const response = await fetch(`${url}/rest/v1/products?${params}`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Prefer: "count=exact",
+      },
+      next: { revalidate: 60 },
+    });
+    if (!response.ok) return null;
+    const rows = await response.json() as Array<{ id: string; slug: string; title: string; image_url: string; price_cents: number }>;
+    const total = Number(response.headers.get("content-range")?.split("/").at(-1));
+    const products = rows.map(databaseSearchProduct);
+    const rankedProducts = sort === "relevance" ? rankSearchProducts(query, products) : products;
+    const start = sort === "relevance" ? (page - 1) * SEARCH_PAGE_SIZE : 0;
+    const effectiveTotal = sort === "relevance"
+      ? rankedProducts.length
+      : (Number.isFinite(total) ? total : products.length);
+    return {
+      products: rankedProducts.slice(start, start + SEARCH_PAGE_SIZE),
+      total: effectiveTotal,
+      page,
+      lastPage: Math.max(1, Math.ceil(effectiveTotal / SEARCH_PAGE_SIZE)),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function databaseSearchPatterns(query: string) {
+  const normalized = normalizeSearchText(query);
+  if (normalized === "ps5" || normalized === "playstation 5") return ["ps5", "playstation*5"];
+  if (normalized === "xbox") return ["xbox", "series*x", "series*s"];
+  if (normalized === "nintendo switch" || normalized === "switch") return ["nintendo*switch", "switch"];
+  return [query];
+}
+
+function databaseSearchProduct(row: { id: string; slug: string; title: string; image_url: string; price_cents: number }): ProductCardData {
+  const price = Number(row.price_cents);
+  return {
+    id: String(row.id),
+    slug: row.slug,
+    title: row.title,
+    image: row.image_url,
+    price: Number.isFinite(price) ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price / 100) : null,
+  };
+}
+
 async function fetchSearchHtml(query: string, page: number, sort: SearchSort) {
   const params = new URLSearchParams({
     query,
@@ -148,6 +234,7 @@ function rankSearchProducts(query: string, products: ProductCardData[]) {
 
   return products
     .map((product, sourceIndex) => ({ product, sourceIndex, score: searchRelevanceScore(product.title, normalizedQuery, queryTerms, primaryTypes, explicitAccessoryIntent) }))
+    .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score || a.sourceIndex - b.sourceIndex)
     .map(({ product }) => product);
 }
@@ -157,8 +244,8 @@ function searchRelevanceScore(title: string, query: string, queryTerms: string[]
   let score = 0;
 
   if (normalizedTitle === query) score += 10_000;
-  if (normalizedTitle.startsWith(query)) score += 3_000;
-  else if (normalizedTitle.includes(query)) score += 1_500;
+  if (normalizedTitle.startsWith(`${query} `)) score += 3_000;
+  else if (hasPhrase(normalizedTitle, query)) score += 1_500;
 
   const matchedTerms = queryTerms.filter((term) => titleMatchesQueryTerm(normalizedTitle, term));
   score += matchedTerms.length * 350;
@@ -223,6 +310,10 @@ function normalizeSearchText(value: string) {
 
 function hasTerm(value: string, term: string) {
   return new RegExp(`(?:^|\\s)${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|\\s)`).test(value);
+}
+
+function hasPhrase(value: string, phrase: string) {
+  return value === phrase || value.startsWith(`${phrase} `) || value.endsWith(` ${phrase}`) || value.includes(` ${phrase} `);
 }
 
 export async function getCategoryPage(path: string, page = 1) {
