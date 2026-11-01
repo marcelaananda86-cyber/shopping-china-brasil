@@ -1,6 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendOrderConfirmationEmail } from "../_shared/order-confirmation.ts";
 
 type JsonObject = Record<string, unknown>;
+// O cliente sem tipos gerados preserva a tipagem dinâmica das tabelas do Supabase.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ServiceClient = SupabaseClient<any, "public", "public", any, any>;
 type CartInput = { id: string; quantity: number };
 type CheckoutInput = {
   idempotencyKey: string;
@@ -119,7 +123,7 @@ Deno.serve(async (request) => {
   }
 });
 
-async function ensurePayments(service: ReturnType<typeof createClient>, orderId: string, userId: string, email: string, input: CheckoutInput) {
+async function ensurePayments(service: ServiceClient, orderId: string, userId: string, email: string, input: CheckoutInput) {
   const { data: order, error } = await service.from("orders")
     .select("id,customer_id,status,total_cents,customer_name,customer_phone,customer_document,shipping_address,order_items(title,quantity,unit_price_cents),order_payments(*)")
     .eq("id", orderId).eq("customer_id", userId).single();
@@ -182,7 +186,7 @@ async function ensurePayments(service: ReturnType<typeof createClient>, orderId:
   return await readOrder(service, order.id, userId);
 }
 
-async function readOrder(service: ReturnType<typeof createClient>, orderId: string, userId: string) {
+async function readOrder(service: ServiceClient, orderId: string, userId: string) {
   const initial = await service.from("orders")
     .select("id,status,subtotal_cents,shipping_cents,total_cents,created_at,order_payments(batch_number,batch_count,amount_cents,provider_transaction_id,status,pix_copy_paste,pix_qr_code_base64,invoice_url,expires_at,paid_at)")
     .eq("id", orderId).eq("customer_id", userId).single();
@@ -200,10 +204,12 @@ async function readOrder(service: ReturnType<typeof createClient>, orderId: stri
     }
   }
 
+  if (order.status === "paid") await sendOrderConfirmationEmail(service, order.id);
+
   return json({ success: true, order: { ...order, payments: order.order_payments, order_payments: undefined } });
 }
 
-async function synchronizePendingPayments(service: ReturnType<typeof createClient>, orderId: string, payments: JsonObject[]) {
+async function synchronizePendingPayments(service: ServiceClient, orderId: string, payments: JsonObject[]) {
   let changed = false;
   for (const payment of payments) {
     if (String(payment.status) !== "pending") continue;

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendOrderConfirmationEmail } from "../_shared/order-confirmation.ts";
 
 type JsonObject = Record<string, unknown>;
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -34,6 +35,7 @@ Deno.serve(async (request) => {
     const { data: payments } = await service.from("order_payments").select("status").eq("order_id", payment.order_id);
     if (payments?.length && payments.every((item) => item.status === "paid")) {
       await service.from("orders").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", payment.order_id).eq("status", "pending_payment");
+      await sendOrderConfirmationEmail(service, payment.order_id);
     } else if (payments?.length && payments.every((item) => ["cancelled", "refunded"].includes(item.status))) {
       await service.from("orders").update({ status: "cancelled" }).eq("id", payment.order_id).eq("status", "pending_payment");
     }
