@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import QRCodeGenerator from "qrcode";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -72,15 +73,21 @@ const states = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT"
 const fieldClass = "mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-[#002055] outline-none transition placeholder:text-slate-300 focus:border-[#002055] focus:ring-4 focus:ring-blue-950/5";
 
 export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit<CheckoutDraft, "cpf" | "accepted"> }) {
-  const { items, hydrated, subtotal, hasUnknownPrices } = useCart();
+  const { items, hydrated, subtotal, hasUnknownPrices, clearCart } = useCart();
   const exchangeRate = useExchangeRate();
   const [draft, setDraft] = useState<CheckoutDraft>(() => emptyDraft(initialCustomer));
   const [errors, setErrors] = useState<Partial<Record<keyof CheckoutDraft, string>>>({});
   const [pixOrder, setPixOrder] = useState<PixOrder | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null);
+  const [statusError, setStatusError] = useState("");
   const [apiError, setApiError] = useState("");
   const [cepLookup, setCepLookup] = useState<{ status: "idle" | "loading" | "success" | "error"; message: string }>({ status: "idle", message: "" });
+  const clearCartRef = useRef(clearCart);
+  const pendingOrderId = pixOrder?.status === "pending_payment" ? pixOrder.id : null;
+
+  useEffect(() => { clearCartRef.current = clearCart; }, [clearCart]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -98,6 +105,39 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!pendingOrderId) return;
+    let active = true;
+    const check = async () => {
+      const updated = await fetchPixOrder(pendingOrderId);
+      if (!active) return;
+      setLastStatusCheck(new Date());
+      if (updated) {
+        setPixOrder(updated);
+        setStatusError("");
+      } else {
+        setStatusError("Não foi possível consultar o pagamento agora. Tentaremos novamente automaticamente.");
+      }
+    };
+    const firstCheck = window.setTimeout(check, 3500);
+    const interval = window.setInterval(check, 7000);
+    const onVisibilityChange = () => { if (document.visibilityState === "visible") void check(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      active = false;
+      window.clearTimeout(firstCheck);
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [pendingOrderId]);
+
+  useEffect(() => {
+    if (pixOrder?.status !== "paid") return;
+    clearCartRef.current();
+    window.localStorage.removeItem(PIX_ATTEMPT_KEY);
+    window.localStorage.removeItem(STORAGE_KEY);
+  }, [pixOrder?.status]);
 
   useEffect(() => {
     const cep = digits(draft.cep);
@@ -135,7 +175,7 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit
   const canContinue = items.length > 0 && !hasUnknownPrices && highValueOrderAllowed && shippingPrice !== null;
 
   if (!hydrated) return <div className="h-[720px] animate-pulse rounded-[28px] bg-slate-100" />;
-  if (!items.length) return <EmptyCheckout />;
+  if (!items.length && !pixOrder) return <EmptyCheckout />;
 
   function update<K extends keyof CheckoutDraft>(key: K, value: CheckoutDraft[K]) {
     setApiError("");
@@ -192,8 +232,23 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit
     if (!pixOrder) return;
     setRefreshing(true);
     const updated = await fetchPixOrder(pixOrder.id);
-    if (updated) setPixOrder(updated);
+    setLastStatusCheck(new Date());
+    if (updated) {
+      setPixOrder(updated);
+      setStatusError("");
+    } else {
+      setStatusError("Não foi possível atualizar agora. Confira sua conexão e tente novamente.");
+    }
     setRefreshing(false);
+  }
+
+  function restartPayment() {
+    window.localStorage.removeItem(PIX_ORDER_KEY);
+    window.localStorage.removeItem(PIX_ATTEMPT_KEY);
+    setPixOrder(null);
+    setStatusError("");
+    setLastStatusCheck(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return <form onSubmit={submit} noValidate>
@@ -204,7 +259,7 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit
 
     <CheckoutSteps prepared={Boolean(pixOrder)} />
 
-    {pixOrder ? <PixPaymentPanel order={pixOrder} refreshing={refreshing} onRefresh={refreshStatus} /> : <div className="mt-6 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_400px]">
+    {pixOrder ? <PixPaymentPanel order={pixOrder} refreshing={refreshing} lastStatusCheck={lastStatusCheck} statusError={statusError} onRefresh={refreshStatus} onRestart={restartPayment} /> : <div className="mt-6 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_400px]">
       <div className="space-y-5">
         <CheckoutSection icon={<UserRound />} eyebrow="Seus dados" title="Identificação">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -297,36 +352,132 @@ function OrderSummary({ aboveOperationalLimit, canContinue, estimatedUsd, shippi
   </aside>;
 }
 
-function PixPaymentPanel({ order, refreshing, onRefresh }: { order: PixOrder; refreshing: boolean; onRefresh: () => void }) {
+function PixPaymentPanel({ order, refreshing, lastStatusCheck, statusError, onRefresh, onRestart }: { order: PixOrder; refreshing: boolean; lastStatusCheck: Date | null; statusError: string; onRefresh: () => void; onRestart: () => void }) {
   const paid = order.status === "paid";
   const sortedPayments = [...order.payments].sort((a, b) => a.batch_number - b.batch_number);
-  return <section className="mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,.09)]">
-    <div className={`flex flex-col gap-4 p-6 sm:flex-row sm:items-center md:p-8 ${paid ? "bg-[#f1fbf5]" : "bg-[#eef3fa]"}`}>
-      <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white ${paid ? "bg-[#168c45]" : "bg-[#002055]"}`}>{paid ? <BadgeCheck size={29} /> : <QrCode size={29} />}</span>
-      <div className="flex-1"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#bd0811]">Pedido {order.id}</p><h2 className="mt-1 text-2xl font-bold text-[#002055]">{paid ? "Pagamento confirmado" : "Pague o PIX para confirmar o pedido"}</h2><p className="mt-1 text-sm text-slate-500">{paid ? "Recebemos todos os pagamentos. Seu pedido seguirá para preparação." : `${sortedPayments.length} pagamento${sortedPayments.length > 1 ? "s" : ""} PIX — ${formatMoney(order.subtotal_cents / 100)} em produtos + ${formatMoney(order.shipping_cents / 100)} de frete.`}</p></div>
-      <button type="button" onClick={onRefresh} disabled={refreshing} className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-xs font-bold text-[#002055] hover:bg-slate-50 disabled:opacity-60"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""} /> Atualizar status</button>
+  const paidCount = sortedPayments.filter((payment) => payment.status === "paid").length;
+  const interrupted = ["cancelled", "refunded"].includes(order.status) || sortedPayments.some((payment) => ["cancelled", "refunded"].includes(payment.status));
+  const progress = sortedPayments.length ? Math.round((paidCount / sortedPayments.length) * 100) : 0;
+
+  return <section className="mt-6 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,.09)] sm:rounded-[30px]">
+    <div className={`flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-7 md:p-8 ${paid ? "bg-[#eaf9f0]" : "bg-gradient-to-r from-[#eef3fa] to-white"}`}>
+      <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${paid ? "bg-[#168c45] shadow-green-950/15" : interrupted ? "bg-amber-600 shadow-amber-950/15" : "bg-[#002055] shadow-blue-950/15"}`}>{paid ? <BadgeCheck size={30} /> : interrupted ? <AlertTriangle size={28} /> : <QrCode size={29} />}</span>
+      <div className="min-w-0 flex-1"><p className="text-[11px] font-bold uppercase tracking-[.17em] text-[#bd0811]">Pedido {order.id}</p><h2 className="mt-1 text-2xl font-bold leading-tight text-[#002055] sm:text-3xl">{paid ? "Pagamento confirmado" : interrupted ? "Pagamento interrompido" : "Seu PIX está pronto"}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{paid ? "Pagamento identificado com sucesso. Seu pedido já entrou no fluxo de preparação." : interrupted ? "Um dos códigos não está mais disponível. Veja abaixo como continuar com segurança." : "Escaneie o QR Code ou copie o código PIX. A confirmação acontece automaticamente nesta tela."}</p></div>
+      {!paid && !interrupted ? <button type="button" onClick={onRefresh} disabled={refreshing} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-xs font-bold text-[#002055] shadow-sm transition hover:border-[#002055] hover:bg-slate-50 disabled:opacity-60"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""} /> {refreshing ? "Verificando…" : "Verificar pagamento"}</button> : null}
     </div>
-    {!paid ? <div className="grid gap-5 p-5 md:p-8 lg:grid-cols-2">{sortedPayments.map((payment) => <PixPaymentCard key={payment.provider_transaction_id} payment={payment} />)}</div> : null}
-    <div className="border-t border-slate-100 bg-slate-50 px-6 py-5 text-center text-xs leading-5 text-slate-500">O pedido é confirmado somente quando todos os PIX constarem como pagos. Você pode acompanhar o andamento em <HardLink href="/conta" className="font-bold text-[#002055] underline">Minha conta</HardLink>.</div>
+
+    {paid ? <PaymentConfirmed order={order} /> : interrupted ? <PaymentInterrupted paidCount={paidCount} onRestart={onRestart} /> : <div className="grid items-start gap-6 p-4 sm:p-6 md:p-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="space-y-5">{sortedPayments.map((payment) => <PixPaymentCard key={payment.provider_transaction_id} payment={payment} />)}</div>
+      <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-6 xl:sticky xl:top-36">
+        <p className="text-[10px] font-bold uppercase tracking-[.17em] text-[#bd0811]">Status do pedido</p>
+        <div className="mt-3 flex items-end justify-between gap-4"><div><strong className="text-lg text-[#002055]">Aguardando pagamento</strong><p className="mt-1 text-xs leading-5 text-slate-500">A consulta à operadora é automática.</p></div><span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700"><Clock3 size={20} /></span></div>
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-[#168c45] transition-all duration-500" style={{ width: `${progress}%` }} /></div>
+        <div className="mt-2 flex justify-between text-[11px] font-semibold text-slate-500"><span>{paidCount} de {sortedPayments.length} PIX confirmado{paidCount === 1 ? "" : "s"}</span><span>{progress}%</span></div>
+
+        <div className="mt-6 border-t border-slate-200 pt-5"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#002055]">Como pagar</p><ol className="mt-4 space-y-4">{[
+          "Abra o aplicativo do seu banco e escolha pagar com PIX.",
+          "Escaneie o QR Code ou use a opção PIX Copia e Cola.",
+          "Confira o valor e conclua. Não feche esta tela até a confirmação.",
+        ].map((item, index) => <li key={item} className="flex gap-3 text-xs leading-5 text-slate-600"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#002055] text-[10px] font-bold text-white">{index + 1}</span><span>{item}</span></li>)}</ol></div>
+
+        <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm"><div className="flex justify-between text-xs text-slate-500"><span>Produtos</span><span>{formatMoney(order.subtotal_cents / 100)}</span></div><div className="mt-2 flex justify-between text-xs text-slate-500"><span>Entrega</span><span>{formatMoney(order.shipping_cents / 100)}</span></div><div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4"><strong className="text-sm text-[#002055]">Total</strong><strong className="text-xl text-[#002055]">{formatMoney(order.total_cents / 100)}</strong></div></div>
+        <p className="mt-4 flex items-center gap-2 text-[11px] leading-5 text-slate-500"><RefreshCw size={14} className="shrink-0 text-[#168c45]" /> {lastStatusCheck ? `Última verificação às ${lastStatusCheck.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "A primeira verificação será feita em instantes."}</p>
+        {statusError ? <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900">{statusError}</p> : null}
+      </aside>
+    </div>}
+
+    <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 text-center text-xs leading-5 text-slate-500">{paid ? <>Acompanhe a preparação e o rastreamento em <HardLink href="/conta" className="font-bold text-[#002055] underline">Minha conta</HardLink>.</> : interrupted ? <>Não faça outro pagamento para este pedido sem seguir a orientação exibida acima.</> : <>Não é necessário enviar comprovante. Assim que a operadora confirmar todos os PIX, o pedido será atualizado automaticamente.</>}</div>
   </section>;
+}
+
+function PaymentInterrupted({ paidCount, onRestart }: { paidCount: number; onRestart: () => void }) {
+  const hasPartialPayment = paidCount > 0;
+  return <div className="p-5 sm:p-7 md:p-8"><div className="mx-auto max-w-3xl rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center sm:p-8"><span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-600 text-white"><AlertTriangle size={30} /></span><h3 className="mt-5 text-2xl font-bold text-[#002055]">{hasPartialPayment ? "Precisamos conferir seu pedido" : "Gere um novo pagamento"}</h3><p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600">{hasPartialPayment ? "Parte do pedido já possui pagamento identificado. Para evitar cobrança duplicada, fale com o atendimento e informe o número do pedido antes de realizar outro PIX." : "Nenhum valor foi confirmado e o código anterior foi cancelado ou expirou. Você pode voltar ao checkout e emitir um novo PIX com segurança."}</p><div className="mt-6 flex flex-wrap justify-center gap-3">{hasPartialPayment ? <HardLink href="/contato" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#002055] px-6 py-3 text-sm font-bold text-white">Falar com o atendimento</HardLink> : <button type="button" onClick={onRestart} className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#bd0811] px-6 py-3 text-sm font-bold text-white hover:bg-[#97070e]">Gerar um novo PIX</button>}<HardLink href="/conta" className="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-[#002055]">Ver meus pedidos</HardLink></div></div></div>;
+}
+
+function PaymentConfirmed({ order }: { order: PixOrder }) {
+  return <div className="grid gap-6 p-5 sm:p-7 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="rounded-3xl border border-green-200 bg-[#f1fbf5] p-6 sm:p-8"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#168c45] text-white shadow-lg shadow-green-950/15"><CheckCircle2 size={34} /></span><h3 className="mt-5 text-2xl font-bold text-[#002055]">Tudo certo com seu pagamento</h3><p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">Recebemos a confirmação da operadora. Agora vamos separar e conferir os produtos antes do envio para o endereço informado.</p><div className="mt-6 flex flex-wrap gap-3"><HardLink href="/conta" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#002055] px-6 py-3 text-sm font-bold text-white hover:bg-[#bd0811]">Acompanhar meu pedido</HardLink><HardLink href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-[#002055] hover:border-[#002055]">Continuar comprando</HardLink></div></div>
+    <aside className="rounded-3xl border border-slate-200 p-6"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#bd0811]">Resumo confirmado</p><dl className="mt-5 space-y-4 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">Pedido</dt><dd className="font-bold text-[#002055]">{order.id}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Pagamento</dt><dd className="font-bold text-[#168c45]">PIX confirmado</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Entrega estimada</dt><dd className="font-bold text-[#002055]">Em até 20 dias</dd></div><div className="flex items-end justify-between gap-4 border-t border-slate-200 pt-4"><dt className="font-bold text-[#002055]">Total pago</dt><dd className="text-xl font-bold text-[#002055]">{formatMoney(order.total_cents / 100)}</dd></div></dl><p className="mt-5 flex gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500"><PackageCheck size={17} className="mt-0.5 shrink-0 text-[#168c45]" /> Você poderá consultar o status e o código de rastreamento na área da conta.</p></aside>
+  </div>;
 }
 
 function PixPaymentCard({ payment }: { payment: PixPayment }) {
   const [copied, setCopied] = useState(false);
-  const qrSource = payment.pix_qr_code_base64?.startsWith("data:") ? payment.pix_qr_code_base64 : payment.pix_qr_code_base64 ? `data:image/png;base64,${payment.pix_qr_code_base64}` : "";
+  const [generatedQr, setGeneratedQr] = useState("");
+  const [providerQrFailed, setProviderQrFailed] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const providerQr = normalizeProviderQr(payment.pix_qr_code_base64);
+  const qrSource = providerQr && !providerQrFailed ? providerQr : generatedQr;
+  const expiresAt = payment.expires_at ? new Date(payment.expires_at).getTime() : null;
+  const expired = Boolean(expiresAt && expiresAt <= now && payment.status === "pending");
+
+  useEffect(() => {
+    let active = true;
+    if (!payment.pix_copy_paste) return;
+    QRCodeGenerator.toDataURL(payment.pix_copy_paste, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      width: 640,
+      color: { dark: "#002055", light: "#ffffff" },
+    }).then((value) => { if (active) setGeneratedQr(value); }).catch(() => { if (active) setGeneratedQr(""); });
+    return () => { active = false; };
+  }, [payment.pix_copy_paste]);
+
+  useEffect(() => {
+    if (!expiresAt || payment.status !== "pending") return;
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [expiresAt, payment.status]);
+
   async function copyCode() {
-    await navigator.clipboard.writeText(payment.pix_copy_paste);
+    try {
+      await navigator.clipboard.writeText(payment.pix_copy_paste);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = payment.pix_copy_paste;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    window.setTimeout(() => setCopied(false), 2200);
   }
-  return <article className="rounded-3xl border border-slate-200 p-5 text-center">
-    <div className="flex items-center justify-between gap-3 text-left"><span className="rounded-full bg-[#002055] px-3 py-1.5 text-[11px] font-bold text-white">PIX {payment.batch_number} de {payment.batch_count}</span><strong className="text-lg text-[#002055]">{formatMoney(payment.amount_cents / 100)}</strong></div>
-    {qrSource ? <img src={qrSource} alt={`QR Code do PIX ${payment.batch_number}`} className="mx-auto mt-5 h-52 w-52 rounded-2xl border border-slate-200 bg-white p-2" /> : <div className="mx-auto mt-5 flex h-52 w-52 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><QrCode size={52} /></div>}
-    <p className="mt-4 break-all rounded-xl bg-slate-50 p-3 text-left font-mono text-[10px] leading-4 text-slate-500">{payment.pix_copy_paste}</p>
-    <button type="button" onClick={copyCode} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[#168c45] px-5 py-3 text-sm font-bold text-white hover:bg-[#117239]">{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? "Código copiado" : "Copiar código PIX"}</button>
-    {payment.invoice_url ? <a href={payment.invoice_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#002055] hover:text-[#bd0811]">Abrir fatura <ExternalLink size={13} /></a> : null}
-    {payment.expires_at ? <p className="mt-3 text-[11px] text-slate-400">Válido até {new Date(payment.expires_at).toLocaleString("pt-BR")}</p> : null}
+
+  if (payment.status === "paid") return <article className="flex flex-col gap-4 rounded-3xl border border-green-200 bg-[#f1fbf5] p-5 sm:flex-row sm:items-center"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#168c45] text-white"><CheckCircle2 size={24} /></span><div className="flex-1"><p className="text-xs font-bold uppercase tracking-[.13em] text-[#168c45]">PIX {payment.batch_number} de {payment.batch_count} confirmado</p><p className="mt-1 text-sm text-slate-500">Pagamento identificado pela operadora.</p></div><strong className="text-xl text-[#002055]">{formatMoney(payment.amount_cents / 100)}</strong></article>;
+
+  if (["cancelled", "refunded"].includes(payment.status)) return <article className="rounded-3xl border border-red-200 bg-red-50 p-5"><div className="flex items-center gap-3"><AlertTriangle className="text-[#bd0811]" /><div><p className="font-bold text-[#bd0811]">Este PIX não está mais disponível</p><p className="mt-1 text-xs text-slate-600">Entre em contato com o atendimento informando o pedido para receber orientação.</p></div></div></article>;
+
+  return <article className={`rounded-3xl border bg-white p-4 shadow-sm sm:p-6 ${expired ? "border-amber-300" : "border-slate-200"}`}>
+    <div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-[#002055] px-3 py-1.5 text-[11px] font-bold text-white">PIX {payment.batch_number} de {payment.batch_count}</span><div className="text-right"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor deste PIX</p><strong className="text-xl text-[#002055]">{formatMoney(payment.amount_cents / 100)}</strong></div></div>
+    <div className="mt-5 grid items-center gap-5 sm:grid-cols-[230px_minmax(0,1fr)] sm:gap-7">
+      <div className="mx-auto w-full max-w-[230px]">
+        <div className="aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-inner">{qrSource ? <img src={qrSource} onError={() => setProviderQrFailed(true)} alt={`QR Code para pagar o PIX ${payment.batch_number}`} className="h-full w-full object-contain" /> : <div className="flex h-full w-full animate-pulse items-center justify-center rounded-xl bg-slate-100 text-slate-400"><QrCode size={54} /></div>}</div>
+        <p className={`mt-3 text-center text-[11px] font-semibold ${expired ? "text-amber-700" : "text-slate-500"}`}>{expiresAt ? expired ? "Prazo do PIX encerrado" : `Expira em ${formatRemainingTime(expiresAt - now)}` : "Pagamento disponível por tempo limitado"}</p>
+      </div>
+      <div className="min-w-0"><h3 className="text-lg font-bold text-[#002055]">Pague pelo aplicativo do seu banco</h3><p className="mt-2 text-xs leading-5 text-slate-500">No celular, toque em copiar e cole o código na área PIX do banco. Em outro dispositivo, aponte a câmera para o QR Code.</p><div className="mt-4 max-h-24 overflow-y-auto break-all rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-[10px] leading-4 text-slate-500">{payment.pix_copy_paste}</div><button type="button" onClick={copyCode} disabled={!payment.pix_copy_paste || expired} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#168c45] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#117239] disabled:cursor-not-allowed disabled:bg-slate-300">{copied ? <Check size={18} /> : <Copy size={18} />}{copied ? "Código PIX copiado" : "Copiar código PIX"}</button>{payment.invoice_url ? <a href={payment.invoice_url} target="_blank" rel="noreferrer" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-[#002055] hover:text-[#bd0811]">Abrir página do pagamento <ExternalLink size={13} /></a> : null}</div>
+    </div>
+    {expired ? <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Este código atingiu o prazo informado pela operadora.</strong> Não tente pagá-lo. Fale com o atendimento para emitir um novo pagamento.</p> : null}
   </article>;
+}
+
+function normalizeProviderQr(value: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  if (/^data:image\/(?:png|jpeg|webp);base64,/i.test(trimmed)) return trimmed;
+  if (trimmed.length > 200 && /^[A-Za-z0-9+/=\s]+$/.test(trimmed)) return `data:image/png;base64,${trimmed.replace(/\s/g, "")}`;
+  return "";
+}
+
+function formatRemainingTime(milliseconds: number) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return [hours, minutes, remainingSeconds].map((value) => String(value).padStart(2, "0")).join(":");
 }
 
 function EmptyCheckout() {

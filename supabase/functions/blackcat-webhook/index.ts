@@ -11,7 +11,8 @@ Deno.serve(async (request) => {
   if (!blackcatKey) return json({ error: "not_configured" }, 503);
   try {
     const payload = await request.json() as JsonObject;
-    const transactionId = String(payload.transactionId ?? "");
+    const payloadData = asObject(payload.data);
+    const transactionId = String(payload.transactionId ?? payloadData.transactionId ?? payload.id ?? "");
     if (!transactionId) return json({ error: "transaction_id_required" }, 400);
 
     const service = createClient(supabaseUrl, serviceKey);

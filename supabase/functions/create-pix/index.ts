@@ -183,11 +183,63 @@ async function ensurePayments(service: ReturnType<typeof createClient>, orderId:
 }
 
 async function readOrder(service: ReturnType<typeof createClient>, orderId: string, userId: string) {
-  const { data: order, error } = await service.from("orders")
+  const initial = await service.from("orders")
     .select("id,status,subtotal_cents,shipping_cents,total_cents,created_at,order_payments(batch_number,batch_count,amount_cents,provider_transaction_id,status,pix_copy_paste,pix_qr_code_base64,invoice_url,expires_at,paid_at)")
     .eq("id", orderId).eq("customer_id", userId).single();
+  let order = initial.data;
+  const error = initial.error;
   if (error || !order) return json({ error: "order_not_found" }, 404);
+
+  if (order.status === "pending_payment" && blackcatKey) {
+    const changed = await synchronizePendingPayments(service, order.id, order.order_payments ?? []);
+    if (changed) {
+      const refreshed = await service.from("orders")
+        .select("id,status,subtotal_cents,shipping_cents,total_cents,created_at,order_payments(batch_number,batch_count,amount_cents,provider_transaction_id,status,pix_copy_paste,pix_qr_code_base64,invoice_url,expires_at,paid_at)")
+        .eq("id", orderId).eq("customer_id", userId).single();
+      if (refreshed.data) order = refreshed.data;
+    }
+  }
+
   return json({ success: true, order: { ...order, payments: order.order_payments, order_payments: undefined } });
+}
+
+async function synchronizePendingPayments(service: ReturnType<typeof createClient>, orderId: string, payments: JsonObject[]) {
+  let changed = false;
+  for (const payment of payments) {
+    if (String(payment.status) !== "pending") continue;
+    const transactionId = String(payment.provider_transaction_id ?? "");
+    if (!transactionId) continue;
+    try {
+      const response = await fetch(`${blackcatBaseUrl}/sales/${encodeURIComponent(transactionId)}/status`, {
+        headers: { "X-API-Key": blackcatKey! },
+      });
+      const result = await response.json() as JsonObject;
+      const data = asObject(result.data);
+      if (!response.ok || result.success !== true || String(data.transactionId ?? "") !== transactionId) continue;
+      const status = mapStatus(String(data.status ?? "PENDING"));
+      if (status === "pending") continue;
+      const { error: updateError } = await service.from("order_payments").update({
+        status,
+        paid_at: data.paidAt ? String(data.paidAt) : status === "paid" ? new Date().toISOString() : null,
+        end_to_end_id: data.endToEndId ? String(data.endToEndId) : null,
+      }).eq("provider_transaction_id", transactionId).eq("order_id", orderId);
+      if (!updateError) changed = true;
+    } catch (error) {
+      console.error("blackcat_status_sync_failed", transactionId, error);
+    }
+  }
+
+  const { data: latestPayments } = await service.from("order_payments").select("status").eq("order_id", orderId);
+  if (latestPayments?.length && latestPayments.every((payment) => payment.status === "paid")) {
+    const { data: updatedOrder } = await service.from("orders").update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", orderId).eq("status", "pending_payment").select("id").maybeSingle();
+    if (updatedOrder) changed = true;
+  } else if (latestPayments?.length && latestPayments.every((payment) => ["cancelled", "refunded"].includes(payment.status))) {
+    const { data: updatedOrder } = await service.from("orders").update({ status: "cancelled" })
+      .eq("id", orderId).eq("status", "pending_payment").select("id").maybeSingle();
+    if (updatedOrder) changed = true;
+  }
+  return changed;
 }
 
 function validateInput(input: CheckoutInput) {
