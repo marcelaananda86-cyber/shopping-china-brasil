@@ -1,0 +1,4 @@
+[functions.blackcat-webhook]
+# BlackCat posts directly to this endpoint without a Supabase JWT. The handler
+# still authenticates every event by consulting the provider with our API key.
+verify_jwt = false

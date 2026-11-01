@@ -43,7 +43,10 @@ Deno.serve(async (request) => {
     const input = await request.json() as CheckoutInput;
     const validationError = validateInput(input);
     if (validationError) return json({ error: "invalid_checkout", message: validationError }, 400);
-    const customerEmail = user.email ?? input.customer.email.trim().toLowerCase();
+    // The contact e-mail is validated as part of the checkout payload. Some
+    // OAuth identities may expose an empty or provider-specific auth e-mail,
+    // which BlackCat rejects as missing customer data.
+    const customerEmail = input.customer.email.trim().toLowerCase();
 
     const existing = await service.from("orders").select("id").eq("customer_id", user.id).eq("checkout_attempt_id", input.idempotencyKey).maybeSingle();
     if (existing.data?.id) return await ensurePayments(service, existing.data.id, user.id, customerEmail, input);
@@ -179,7 +182,10 @@ async function ensurePayments(service: ServiceClient, orderId: string, userId: s
       pix_copy_paste: String(paymentData.copyPaste ?? paymentData.qrCode ?? ""),
       pix_qr_code_base64: String(paymentData.qrCodeBase64 ?? ""),
       invoice_url: data.invoiceUrl ? String(data.invoiceUrl) : null,
-      expires_at: paymentData.expiresAt ? String(paymentData.expiresAt) : null,
+      // BlackCat has occasionally returned a malformed timezone in expiresAt.
+      // Never let that upstream formatting issue roll back an otherwise valid
+      // PIX transaction and hide its QR Code from the customer.
+      expires_at: normalizeTimestamp(paymentData.expiresAt, 1),
     });
     if (paymentError) throw paymentError;
   }
@@ -337,6 +343,11 @@ function validCpf(value: string) {
 }
 
 function digits(value: string) { return String(value).replace(/\D/g, ""); }
+function normalizeTimestamp(value: unknown, fallbackDays: number) {
+  const parsed = Date.parse(String(value ?? ""));
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  return new Date(Date.now() + fallbackDays * 24 * 60 * 60 * 1000).toISOString();
+}
 function asObject(value: unknown): JsonObject { return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {}; }
 function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } }); }
 
