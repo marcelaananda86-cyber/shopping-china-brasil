@@ -18,6 +18,25 @@ const CURATED_PRODUCT_IDS = [
   "943235", "882589", "1068352", "945167", "1051827", "1019113", "979965", "978040", "1056217",
   "1066162", "968119", "1029045", "1024793", "1058671", "864735", "968317", "876209", "726226",
   "920430", "973043", "985372", "1010193", "942508", "908912", "991593", "1070663", "1100171",
+  // Terceira expansão: 100 produtos de alta procura com preço de até R$ 500.
+  // Perfumes de marcas reconhecidas.
+  "864670", "588600", "966667", "377578", "765072", "1072618", "597929", "983600", "918518", "990251",
+  "883106", "781864", "828166", "1102326", "436006", "944501", "1072619", "1000668", "992952", "1001177",
+  "5286", "355241", "62156", "480727", "985227",
+  // Áudio de consumo, incluindo JBL, Logitech, Razer e Corsair.
+  "1073421", "1061568", "1061564", "915231", "1058677", "1058686", "633685", "979929", "1028554", "1028557",
+  "1046247", "1046245", "1015713", "863649", "849654",
+  // Games, controles e periféricos.
+  "1019021", "987342", "1057687", "1112023", "976886", "958897", "773394", "804207", "807927", "1116094",
+  "1052900", "843534", "904875", "941582", "864087", "793076", "697776", "732282", "855024", "880588",
+  // Tecnologia e acessórios de marcas reconhecidas.
+  "872892", "766820", "768246", "969847", "892903", "1015807", "1067985", "863409", "849657", "716422",
+  "708304", "806008", "784517", "1015927", "1071788", "905450", "997366",
+  // Eletroportáteis e cuidados pessoais.
+  "954619", "1053406", "1097812", "906465", "739954", "833814", "850992", "1067705", "1003746", "1076028",
+  "925179", "1080568", "1055702", "893120", "1002787",
+  // Beleza e cuidados capilares.
+  "923506", "753898", "831685", "981352", "628354", "810827", "621720", "1067720",
 ] as const;
 
 const MERCHANT_TITLE_OVERRIDES: Record<string, string> = {
@@ -74,6 +93,42 @@ const MERCHANT_TITLE_OVERRIDES: Record<string, string> = {
   "991593": "Monitor Gamer Samsung Odyssey G5 27 Polegadas QHD 165 Hz",
   "1070663": "Monitor Gamer Dell SE2426HG 23,8 Polegadas 240 Hz",
   "1100171": "Fritadeira Air Fryer Midea 12 L 220 V Cinza",
+  "1072618": "Perfume Paco Rabanne Phantom In Red Parfum 100 ml",
+  "990251": "Perfume Carolina Herrera 212 VIP Black Elixir Eau de Parfum 100 ml",
+  "436006": "Perfume Prada Luna Rossa Pour Homme Eau de Toilette 50 ml",
+  "5286": "Perfume Paco Rabanne Pour Homme Eau de Toilette 100 ml",
+  "1073421": "Fone de Ouvido Bluetooth JBL Tune 680 NC Branco",
+  "1061568": "Fone de Ouvido Bluetooth JBL Tune 730 Azul",
+  "1061564": "Fone de Ouvido Bluetooth JBL Tune 530 Bege",
+  "915231": "Caixa de Som Bluetooth JBL Clip 5 Vermelha",
+  "1058677": "Caixa de Som Bluetooth JBL Go 5 Laranja",
+  "1058686": "Caixa de Som Bluetooth JBL Go 5 Amarela",
+  "979929": "Caixa de Som Bluetooth JBL Flip 7 Vermelha",
+  "849654": "Fone de Ouvido Bluetooth Logitech Zone Vibe 100 Rosa",
+  "1019021": "Controle Sony DualSense para PS5 Edição Limitada God of War 20º Aniversário",
+  "958897": "Controle Sony DualSense Chroma Pearl para PS5",
+  "773394": "Controle Sony DualSense Cosmic Red para PS5",
+  "804207": "Controle Sony DualSense Starlight Blue para PS5",
+  "807927": "Controle Sony DualSense Galactic Purple para PS5",
+  "904875": "Controle Sony DualSense Sterling Silver para PS5",
+  "872892": "Amazon Echo Show 5 3ª Geração Grafite",
+  "766820": "Localizador Apple AirTag com 4 Unidades",
+  "768246": "Localizador Apple AirTag com 1 Unidade",
+  "969847": "SSD M.2 Kingston NV3 500 GB PCIe 4.0",
+  "892903": "Cartão de Memória SanDisk Ultra SD 512 GB 150 MB/s",
+  "863409": "Webcam Logitech Brio 500 Full HD Preta",
+  "849657": "Webcam Logitech Brio 500 Full HD Branca",
+  "716422": "Webcam Logitech C930e Full HD Preta",
+  "708304": "Webcam Logitech C922 Pro Stream Full HD",
+  "806008": "Teclado Bluetooth Logitech MX Keys Mini Rosa",
+  "784517": "Mouse Apple Magic Mouse 2 Prata",
+  "1071788": "Carregador Portátil Xiaomi Magnético 5.000 mAh",
+  "905450": "Carregador Apple Dual USB-C 35 W Branco",
+  "997366": "Carregador Portátil Xiaomi 20.000 mAh Cinza-Escuro",
+  "954619": "Kit Máquina de Cortar Cabelo Wahl Legend",
+  "1067705": "Secador de Cabelo Mondial by Juliette Ultrassônico 220 V",
+  "893120": "Escova Secadora Mondial Tourmaline Íon Preta e Rosa Bivolt",
+  "1067720": "Escova Secadora Mondial by Juliette Quatro Elementos Bivolt",
 };
 
 export async function GET() {
@@ -162,6 +217,8 @@ function translateMerchantTitle(value: string) {
     [/\bJUGUETE\b/gi, "Brinquedo"], [/\bBAÑO\b/gi, "Banho"], [/\bRIÑONERA\b/gi, "Pochete"],
     [/\bPASTELERIA\b/gi, "Confeitaria"], [/\bNECESER\b/gi, "Nécessaire"], [/\bBOLSO\b/gi, "Bolsa"],
     [/\bELÉCTRICO\b/gi, "Elétrico"], [/\bWIRELESS\b/gi, "Sem Fio"], [/\bRUNNING\b/gi, "Corrida"],
+    [/\bCHARCOAL\b/gi, "Grafite"], [/\bGRAPHITE\b/gi, "Grafite"], [/\bBLK\b/gi, "Preto"],
+    [/\bROSE\b/gi, "Rosa"], [/\bFOR MEN\b/gi, "Masculino"], [/\bPOUR HOMME\b/gi, "Masculino"],
     [/\bAURICULAR(?:ES)?\b/gi, "Fone de Ouvido"], [/\bINALÁMBRICOS?\b/gi, "Sem Fio"],
     [/\bINALAMBRICOS?\b/gi, "Sem Fio"], [/\bPARLANTE\b/gi, "Caixa de Som"], [/\bSPEAKER\b/gi, "Caixa de Som"],
     [/\bSOPORTE\b/gi, "Suporte"], [/\bESTUCHE\b/gi, "Capa"], [/\bPROTECTOR\b/gi, "Protetor"],
@@ -171,6 +228,8 @@ function translateMerchantTitle(value: string) {
     [/\bPURPLE\b/gi, "Roxo"], [/\bGREEN\b/gi, "Verde"], [/\bYELLOW\b/gi, "Amarelo"],
     [/\bORANGE\b/gi, "Laranja"], [/\bDORADO\b/gi, "Dourado"], [/\bMARRÓN\b/gi, "Marrom"], [/\bBROWN\b/gi, "Marrom"],
     [/\bFEMENINO\b/gi, "Feminino"], [/\bMASCULINO\b/gi, "Masculino"],
+    [/\bMEMORIA\b/gi, "Memória"], [/\bACONDICIONADOR\b/gi, "Condicionador"],
+    [/\bMASCARA\b/gi, "Máscara"], [/\bSERUM\b/gi, "Sérum"],
   ];
   return translations.reduce((title, [pattern, replacement]) => title.replace(pattern, replacement), value)
     .replace(/\s+/g, " ").trim();
