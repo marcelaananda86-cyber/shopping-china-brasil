@@ -14,6 +14,10 @@ const CURATED_PRODUCT_IDS = [
   "948625", "883614", "1011080", "1031749", "953327", "773395", "991475", "788272", "911471", "979927",
   "979928", "1012524", "945169", "1091835", "971716", "1002945", "964050", "963832", "940475", "886623",
   "880321", "823928", "1080569", "825306", "1003638", "1026814",
+  // Segunda expansão: produtos principais com alta procura, sem acessórios.
+  "943235", "882589", "1068352", "945167", "1051827", "1019113", "979965", "978040", "1056217",
+  "1066162", "968119", "1029045", "1024793", "1058671", "864735", "968317", "876209", "726226",
+  "920430", "973043", "985372", "1010193", "942508", "908912", "991593", "1070663", "1100171",
 ] as const;
 
 const MERCHANT_TITLE_OVERRIDES: Record<string, string> = {
@@ -43,6 +47,33 @@ const MERCHANT_TITLE_OVERRIDES: Record<string, string> = {
   "825306": "Cafeteira Dolce Gusto Genio S Touch 800 ml 220 V",
   "1003638": "Smart TV Samsung Q7F 50 Polegadas 4K QLED Preta",
   "1026814": "Xiaomi Poco F8 Pro 5G 512 GB 12 GB RAM Preto",
+  "943235": "Apple iPhone 16 Pro Max 256 GB Titânio-Deserto eSIM",
+  "882589": "Apple iPhone 15 Pro 512 GB Branco eSIM",
+  "1068352": "Apple iPhone 17 Pro Max 256 GB Azul",
+  "945167": "Fone de Ouvido Apple AirPods 4 Branco",
+  "1051827": "Notebook Apple MacBook Air 13 Polegadas M5 16 GB RAM 512 GB SSD Prata",
+  "1019113": "Notebook Apple MacBook Pro 14 Polegadas M5 24 GB RAM 1 TB SSD Prata",
+  "979965": "Tablet Apple iPad 11 Polegadas A16 128 GB Amarelo",
+  "978040": "Tablet Apple iPad Mini 7 8,3 Polegadas 128 GB Estelar",
+  "1056217": "Notebook Acer Aspire Go 15 Ryzen 7 16 GB RAM 512 GB SSD 15,6 Polegadas",
+  "1066162": "Notebook Dell 15 Intel Core i7 16 GB RAM 512 GB SSD 15,6 Polegadas Preto",
+  "968119": "Samsung Galaxy S25 Ultra 5G 512 GB 12 GB RAM Titânio Prata",
+  "1029045": "Xiaomi Redmi Note 15 Pro 5G 256 GB 8 GB RAM Preto",
+  "1024793": "Xiaomi Poco F8 Pro 256 GB 12 GB RAM Preto",
+  "1058671": "Caixa de Som Bluetooth JBL Go 5 Branca",
+  "864735": "Fone de Ouvido Bluetooth JBL Tune 720 Preto",
+  "968317": "Smart TV LG UT7300 43 Polegadas 4K UHD",
+  "876209": "Smart TV TCL S5400 32 Polegadas Full HD HDR",
+  "726226": "Console Nintendo Switch Lite 32 GB Turquesa",
+  "920430": "Console Microsoft Xbox Series X 1 TB Preto Versão Japonesa",
+  "973043": "Amazon Kindle Paperwhite Signature Edition 12ª Geração 16 GB 7 Polegadas Preto",
+  "985372": "Câmera 360 GoPro Max 5,6K Preta",
+  "1010193": "Drone DJI Mini 5 Pro",
+  "942508": "Câmera DJI Osmo Action 5 Pro Adventure Combo Preta",
+  "908912": "Relógio Garmin Venu 3 GPS Preto",
+  "991593": "Monitor Gamer Samsung Odyssey G5 27 Polegadas QHD 165 Hz",
+  "1070663": "Monitor Gamer Dell SE2426HG 23,8 Polegadas 240 Hz",
+  "1100171": "Fritadeira Air Fryer Midea 12 L 220 V Cinza",
 };
 
 export async function GET() {
@@ -151,10 +182,13 @@ function merchantDescription(product: MerchantProduct, title: string) {
 
   let categoryCopy = "Produto selecionado para quem procura qualidade, procedência e especificações claramente identificadas";
   if (/iPhone|Galaxy|Redmi|Poco/i.test(title)) categoryCopy = "Smartphone indicado para comunicação, aplicativos, fotos, vídeos e uso diário";
-  else if (/PlayStation|Nintendo Switch/i.test(title)) categoryCopy = "Console desenvolvido para jogos, entretenimento e acesso ao catálogo compatível da plataforma";
+  else if (/PlayStation|Nintendo Switch|Xbox/i.test(title)) categoryCopy = "Console desenvolvido para jogos, entretenimento e acesso ao catálogo compatível da plataforma";
   else if (/JBL|Fone de Ouvido|AirPods/i.test(title)) categoryCopy = "Equipamento de áudio indicado para música, chamadas e entretenimento";
   else if (/Watch|Garmin|Relógio/i.test(title)) categoryCopy = "Relógio inteligente indicado para notificações, atividades e acompanhamento da rotina";
   else if (/Kindle/i.test(title)) categoryCopy = "Leitor digital desenvolvido para leitura confortável e armazenamento de livros eletrônicos";
+  else if (/MacBook|Notebook|iPad|Tablet/i.test(title)) categoryCopy = "Computador portátil indicado para estudos, trabalho, navegação, produtividade e entretenimento";
+  else if (/Monitor/i.test(title)) categoryCopy = "Monitor indicado para computadores, jogos, produtividade e reprodução de conteúdo compatível";
+  else if (/Drone/i.test(title)) categoryCopy = "Drone indicado para captação aérea de fotos e vídeos conforme os recursos do modelo";
   else if (/Câmera|GoPro|DJI/i.test(title)) categoryCopy = "Equipamento de imagem indicado para fotografias, vídeos e criação de conteúdo";
   else if (/TV/i.test(title)) categoryCopy = "Televisor inteligente indicado para filmes, séries, jogos e aplicativos de streaming compatíveis";
   else if (/Fritadeira|Cafeteira/i.test(title)) categoryCopy = "Eletrodoméstico indicado para facilitar o preparo diário com as características elétricas informadas no anúncio";
