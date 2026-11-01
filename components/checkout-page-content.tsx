@@ -12,7 +12,6 @@ import {
   Clock3,
   CreditCard,
   Copy,
-  ExternalLink,
   LoaderCircle,
   LockKeyhole,
   MapPin,
@@ -252,9 +251,9 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit
   }
 
   return <form onSubmit={submit} noValidate>
-    <div className="mb-6 flex flex-col justify-between gap-5 rounded-[28px] bg-[#002055] px-6 py-6 text-white shadow-xl shadow-blue-950/10 md:flex-row md:items-center md:px-8">
-      <div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#fcb92c]">Checkout seguro</p><h1 className="mt-2 text-2xl font-bold md:text-3xl">Finalize sua compra</h1><p className="mt-2 text-sm text-white/65">Confira seus dados, a entrega e o pagamento antes de continuar.</p></div>
-      <div className="flex items-center gap-2 text-xs font-semibold text-white/75"><LockKeyhole size={17} className="text-[#fcb92c]" /> Ambiente protegido</div>
+    <div className="mb-5 flex flex-col justify-between gap-4 rounded-3xl bg-[#002055] px-5 py-5 text-white shadow-lg shadow-blue-950/10 sm:px-7 sm:py-6 md:flex-row md:items-center">
+      <div><p className="text-[10px] font-bold uppercase tracking-[.22em] text-[#fcb92c]">Compra segura</p><h1 className="mt-1.5 text-2xl font-bold md:text-3xl">Finalize seu pedido</h1><p className="mt-1.5 text-sm text-white/70">Preencha os dados abaixo e pague com PIX.</p></div>
+      <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white/85"><LockKeyhole size={16} className="text-[#fcb92c]" /> Seus dados estão protegidos</div>
     </div>
 
     <CheckoutSteps prepared={Boolean(pixOrder)} />
@@ -324,8 +323,23 @@ export function CheckoutPageContent({ initialCustomer }: { initialCustomer: Omit
 }
 
 function CheckoutSteps({ prepared }: { prepared: boolean }) {
-  const steps = ["Carrinho", "Identificação", "Entrega", "PIX"];
-  return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm md:px-6"><div className="flex items-center">{steps.map((step, index) => <div key={step} className="flex min-w-0 flex-1 items-center last:flex-none"><div className="flex min-w-0 flex-col items-center gap-1.5"><span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${index === 0 || prepared ? "bg-[#168c45] text-white" : index === 1 ? "bg-[#002055] text-white" : "bg-slate-100 text-slate-400"}`}>{index === 0 || prepared ? <Check size={15} /> : index + 1}</span><span className="hidden text-[10px] font-semibold text-slate-500 sm:block">{step}</span></div>{index < steps.length - 1 ? <span className={`mx-2 h-0.5 min-w-4 flex-1 ${prepared || index === 0 ? "bg-[#168c45]" : "bg-slate-200"}`} /> : null}</div>)}</div></div>;
+  const steps = [
+    { label: "Dados", icon: <UserRound size={16} /> },
+    { label: "Entrega", icon: <Truck size={16} /> },
+    { label: "PIX", icon: <QrCode size={16} /> },
+  ];
+  return <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="flex items-center justify-between gap-4">
+      <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#bd0811]">{prepared ? "Pagamento" : "Dados do pedido"}</p><p className="mt-0.5 text-sm font-bold text-[#002055]">{prepared ? "Conclua o PIX para confirmar" : "Revise e finalize em poucos minutos"}</p></div>
+      <span className="shrink-0 rounded-full bg-[#eef3fa] px-3 py-1.5 text-[11px] font-bold text-[#002055]">Etapa {prepared ? 2 : 1} de 2</span>
+    </div>
+    <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#168c45] transition-all duration-500" style={{ width: prepared ? "100%" : "50%" }} /></div>
+    <ol className="mt-4 grid grid-cols-3 gap-2">{steps.map((step, index) => {
+      const complete = prepared || index < 2;
+      const active = prepared ? index === 2 : index === 0;
+      return <li key={step.label} className={`flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-semibold sm:justify-start sm:gap-2 sm:px-3 ${active ? "bg-[#002055] text-white" : complete ? "bg-green-50 text-[#168c45]" : "bg-slate-50 text-slate-400"}`}><span className="shrink-0">{complete && !active ? <Check size={16} /> : step.icon}</span><span>{step.label}</span></li>;
+    })}</ol>
+  </div>;
 }
 
 function CheckoutSection({ icon, eyebrow, title, children }: { icon: React.ReactNode; eyebrow: string; title: string; children: React.ReactNode }) {
@@ -359,34 +373,31 @@ function PixPaymentPanel({ order, refreshing, lastStatusCheck, statusError, onRe
   const interrupted = ["cancelled", "refunded"].includes(order.status) || sortedPayments.some((payment) => ["cancelled", "refunded"].includes(payment.status));
   const progress = sortedPayments.length ? Math.round((paidCount / sortedPayments.length) * 100) : 0;
 
-  return <section className="mt-6 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,.09)] sm:rounded-[30px]">
-    <div className={`flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-7 md:p-8 ${paid ? "bg-[#eaf9f0]" : "bg-gradient-to-r from-[#eef3fa] to-white"}`}>
-      <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${paid ? "bg-[#168c45] shadow-green-950/15" : interrupted ? "bg-amber-600 shadow-amber-950/15" : "bg-[#002055] shadow-blue-950/15"}`}>{paid ? <BadgeCheck size={30} /> : interrupted ? <AlertTriangle size={28} /> : <QrCode size={29} />}</span>
-      <div className="min-w-0 flex-1"><p className="text-[11px] font-bold uppercase tracking-[.17em] text-[#bd0811]">Pedido {order.id}</p><h2 className="mt-1 text-2xl font-bold leading-tight text-[#002055] sm:text-3xl">{paid ? "Pagamento confirmado" : interrupted ? "Pagamento interrompido" : "Seu PIX está pronto"}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{paid ? "Pagamento identificado com sucesso. Seu pedido entrou em preparação e a confirmação será enviada ao e-mail informado." : interrupted ? "Um dos códigos não está mais disponível. Veja abaixo como continuar com segurança." : "Escaneie o QR Code ou copie o código PIX. A confirmação acontece automaticamente nesta tela."}</p></div>
-      {!paid && !interrupted ? <button type="button" onClick={onRefresh} disabled={refreshing} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-xs font-bold text-[#002055] shadow-sm transition hover:border-[#002055] hover:bg-slate-50 disabled:opacity-60"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""} /> {refreshing ? "Verificando…" : "Verificar pagamento"}</button> : null}
+  return <section className={`mt-5 overflow-hidden rounded-3xl border bg-white shadow-[0_16px_50px_rgba(15,23,42,.08)] ${paid ? "border-green-200" : interrupted ? "border-amber-200" : "border-slate-200"}`}>
+    <div className={`border-t-4 ${paid ? "border-[#168c45] bg-green-50/60" : interrupted ? "border-amber-500 bg-amber-50/60" : "border-[#002055] bg-white"}`}>
+      <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:px-7 sm:py-6">
+        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white ${paid ? "bg-[#168c45]" : interrupted ? "bg-amber-600" : "bg-[#002055]"}`}>{paid ? <BadgeCheck size={27} /> : interrupted ? <AlertTriangle size={25} /> : <QrCode size={25} />}</span>
+        <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[.17em] text-[#bd0811]">Pedido {order.id}</p><h2 className="mt-1 text-xl font-bold leading-tight text-[#002055] sm:text-2xl">{paid ? "Pagamento confirmado" : interrupted ? "Pagamento interrompido" : "PIX gerado com sucesso"}</h2><p className="mt-1.5 text-sm leading-6 text-slate-500">{paid ? "Seu pedido já entrou em preparação. Enviaremos os próximos passos por e-mail." : interrupted ? "Um dos códigos não está mais disponível. Veja abaixo como continuar com segurança." : "Pague nesta página. O status será atualizado automaticamente após a confirmação do banco."}</p></div>
+        {!paid && !interrupted ? <div className="flex flex-col items-stretch gap-2 sm:items-end"><span className="inline-flex items-center justify-center gap-2 text-[11px] font-semibold text-[#168c45]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#168c45]" /> Verificação automática ativa</span><button type="button" onClick={onRefresh} disabled={refreshing} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-[#002055] transition hover:border-[#002055] hover:bg-slate-50 disabled:opacity-60"><RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /> {refreshing ? "Verificando…" : "Verificar agora"}</button></div> : null}
+      </div>
     </div>
 
-    {paid ? <PaymentConfirmed order={order} /> : interrupted ? <PaymentInterrupted paidCount={paidCount} onRestart={onRestart} /> : <div className="grid items-start gap-6 p-4 sm:p-6 md:p-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+    {paid ? <PaymentConfirmed order={order} /> : interrupted ? <PaymentInterrupted paidCount={paidCount} onRestart={onRestart} /> : <div className="grid items-start gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-7">
       <div className="space-y-5">{sortedPayments.map((payment) => <PixPaymentCard key={payment.provider_transaction_id} payment={payment} />)}</div>
-      <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-6 xl:sticky xl:top-36">
-        <p className="text-[10px] font-bold uppercase tracking-[.17em] text-[#bd0811]">Status do pedido</p>
-        <div className="mt-3 flex items-end justify-between gap-4"><div><strong className="text-lg text-[#002055]">Aguardando pagamento</strong><p className="mt-1 text-xs leading-5 text-slate-500">A consulta à operadora é automática.</p></div><span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700"><Clock3 size={20} /></span></div>
+      <aside className="rounded-2xl border border-slate-200 bg-[#f7f9fc] p-5 lg:sticky lg:top-32">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#bd0811]">Status do pedido</p><strong className="mt-1.5 block text-base text-[#002055]">Aguardando pagamento</strong><p className="mt-1 text-xs leading-5 text-slate-500">Você não precisa enviar comprovante.</p></div><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700"><Clock3 size={19} /></span></div>
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-[#168c45] transition-all duration-500" style={{ width: `${progress}%` }} /></div>
         <div className="mt-2 flex justify-between text-[11px] font-semibold text-slate-500"><span>{paidCount} de {sortedPayments.length} PIX confirmado{paidCount === 1 ? "" : "s"}</span><span>{progress}%</span></div>
 
-        <div className="mt-6 border-t border-slate-200 pt-5"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#002055]">Como pagar</p><ol className="mt-4 space-y-4">{[
-          "Abra o aplicativo do seu banco e escolha pagar com PIX.",
-          "Escaneie o QR Code ou use a opção PIX Copia e Cola.",
-          "Confira o valor e conclua. Não feche esta tela até a confirmação.",
-        ].map((item, index) => <li key={item} className="flex gap-3 text-xs leading-5 text-slate-600"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#002055] text-[10px] font-bold text-white">{index + 1}</span><span>{item}</span></li>)}</ol></div>
+        <div className="mt-5 border-t border-slate-200 pt-5"><p className="text-xs font-bold text-[#002055]">Pagamento simples e seguro</p><div className="mt-3 space-y-3"><p className="flex gap-3 text-xs leading-5 text-slate-600"><QrCode size={17} className="mt-0.5 shrink-0 text-[#168c45]" /> Escaneie o QR Code ou copie o código PIX.</p><p className="flex gap-3 text-xs leading-5 text-slate-600"><BadgeCheck size={17} className="mt-0.5 shrink-0 text-[#168c45]" /> Confira o valor e confirme no aplicativo do banco.</p><p className="flex gap-3 text-xs leading-5 text-slate-600"><RefreshCw size={17} className="mt-0.5 shrink-0 text-[#168c45]" /> Aguarde a confirmação automática nesta tela.</p></div></div>
 
-        <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm"><div className="flex justify-between text-xs text-slate-500"><span>Produtos</span><span>{formatMoney(order.subtotal_cents / 100)}</span></div><div className="mt-2 flex justify-between text-xs text-slate-500"><span>Entrega</span><span>{formatMoney(order.shipping_cents / 100)}</span></div><div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4"><strong className="text-sm text-[#002055]">Total</strong><strong className="text-xl text-[#002055]">{formatMoney(order.total_cents / 100)}</strong></div></div>
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4"><div className="flex justify-between text-xs text-slate-500"><span>Produtos</span><span>{formatMoney(order.subtotal_cents / 100)}</span></div><div className="mt-2 flex justify-between text-xs text-slate-500"><span>Entrega</span><span>{formatMoney(order.shipping_cents / 100)}</span></div><div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4"><strong className="text-sm text-[#002055]">Total</strong><strong className="text-xl text-[#002055]">{formatMoney(order.total_cents / 100)}</strong></div></div>
         <p className="mt-4 flex items-center gap-2 text-[11px] leading-5 text-slate-500"><RefreshCw size={14} className="shrink-0 text-[#168c45]" /> {lastStatusCheck ? `Última verificação às ${lastStatusCheck.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "A primeira verificação será feita em instantes."}</p>
         {statusError ? <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900">{statusError}</p> : null}
       </aside>
     </div>}
 
-    <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 text-center text-xs leading-5 text-slate-500">{paid ? <>Acompanhe a preparação e o rastreamento em <HardLink href="/conta" className="font-bold text-[#002055] underline">Minha conta</HardLink>.</> : interrupted ? <>Não faça outro pagamento para este pedido sem seguir a orientação exibida acima.</> : <>Não é necessário enviar comprovante. Assim que a operadora confirmar todos os PIX, o pedido será atualizado automaticamente.</>}</div>
+    <div className="border-t border-slate-100 bg-slate-50 px-5 py-3.5 text-center text-xs leading-5 text-slate-500">{paid ? <>Acompanhe a preparação e o rastreamento em <HardLink href="/conta" className="font-bold text-[#002055] underline">Minha conta</HardLink>.</> : interrupted ? <>Não faça outro pagamento para este pedido sem seguir a orientação exibida acima.</> : <>Assim que o banco confirmar o PIX, seu pedido será atualizado automaticamente.</>}</div>
   </section>;
 }
 
@@ -451,14 +462,14 @@ function PixPaymentCard({ payment }: { payment: PixPayment }) {
 
   if (["cancelled", "refunded"].includes(payment.status)) return <article className="rounded-3xl border border-red-200 bg-red-50 p-5"><div className="flex items-center gap-3"><AlertTriangle className="text-[#bd0811]" /><div><p className="font-bold text-[#bd0811]">Este PIX não está mais disponível</p><p className="mt-1 text-xs text-slate-600">Entre em contato com o atendimento informando o pedido para receber orientação.</p></div></div></article>;
 
-  return <article className={`rounded-3xl border bg-white p-4 shadow-sm sm:p-6 ${expired ? "border-amber-300" : "border-slate-200"}`}>
-    <div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-[#002055] px-3 py-1.5 text-[11px] font-bold text-white">PIX {payment.batch_number} de {payment.batch_count}</span><div className="text-right"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor deste PIX</p><strong className="text-xl text-[#002055]">{formatMoney(payment.amount_cents / 100)}</strong></div></div>
-    <div className="mt-5 grid items-center gap-5 sm:grid-cols-[230px_minmax(0,1fr)] sm:gap-7">
-      <div className="mx-auto w-full max-w-[230px]">
-        <div className="aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-inner">{qrSource ? <img src={qrSource} onError={() => setProviderQrFailed(true)} alt={`QR Code para pagar o PIX ${payment.batch_number}`} className="h-full w-full object-contain" /> : <div className="flex h-full w-full animate-pulse items-center justify-center rounded-xl bg-slate-100 text-slate-400"><QrCode size={54} /></div>}</div>
-        <p className={`mt-3 text-center text-[11px] font-semibold ${expired ? "text-amber-700" : "text-slate-500"}`}>{expiresAt ? expired ? "Prazo do PIX encerrado" : `Expira em ${formatRemainingTime(expiresAt - now)}` : "Pagamento disponível por tempo limitado"}</p>
+  return <article className={`overflow-hidden rounded-2xl border bg-white ${expired ? "border-amber-300" : "border-slate-200"}`}>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3.5 sm:px-5"><span className="rounded-full bg-[#002055] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white">PIX {payment.batch_number} de {payment.batch_count}</span><div className="flex items-baseline gap-2"><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Valor</span><strong className="text-lg text-[#002055]">{formatMoney(payment.amount_cents / 100)}</strong></div></div>
+    <div className="grid items-center gap-5 p-4 sm:p-5 md:grid-cols-[210px_minmax(0,1fr)] md:gap-6">
+      <div className="mx-auto w-full max-w-[210px]">
+        <div className="aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white p-2">{qrSource ? <img src={qrSource} onError={() => setProviderQrFailed(true)} alt={`QR Code para pagar o PIX ${payment.batch_number}`} className="h-full w-full object-contain" /> : <div className="flex h-full w-full animate-pulse items-center justify-center rounded-xl bg-slate-100 text-slate-400"><QrCode size={50} /></div>}</div>
+        <p className={`mt-2.5 flex items-center justify-center gap-1.5 text-center text-[11px] font-semibold ${expired ? "text-amber-700" : "text-slate-500"}`}><Clock3 size={13} />{expiresAt ? expired ? "Prazo do PIX encerrado" : `Expira em ${formatRemainingTime(expiresAt - now)}` : "Pagamento disponível por tempo limitado"}</p>
       </div>
-      <div className="min-w-0"><h3 className="text-lg font-bold text-[#002055]">Pague pelo aplicativo do seu banco</h3><p className="mt-2 text-xs leading-5 text-slate-500">No celular, toque em copiar e cole o código na área PIX do banco. Em outro dispositivo, aponte a câmera para o QR Code.</p><div className="mt-4 max-h-24 overflow-y-auto break-all rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-[10px] leading-4 text-slate-500">{payment.pix_copy_paste}</div><button type="button" onClick={copyCode} disabled={!payment.pix_copy_paste || expired} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#168c45] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#117239] disabled:cursor-not-allowed disabled:bg-slate-300">{copied ? <Check size={18} /> : <Copy size={18} />}{copied ? "Código PIX copiado" : "Copiar código PIX"}</button>{payment.invoice_url ? <a href={payment.invoice_url} target="_blank" rel="noreferrer" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-[#002055] hover:text-[#bd0811]">Abrir página do pagamento <ExternalLink size={13} /></a> : null}</div>
+      <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#168c45]">PIX Copia e Cola</p><h3 className="mt-1 text-lg font-bold text-[#002055]">Pague pelo aplicativo do seu banco</h3><p className="mt-1.5 text-xs leading-5 text-slate-500">No celular, copie o código abaixo. Em outro dispositivo, escaneie o QR Code ao lado.</p><textarea readOnly aria-label={`Código PIX ${payment.batch_number}`} value={payment.pix_copy_paste} className="mt-4 h-20 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-[10px] leading-4 text-slate-500 outline-none focus:border-[#002055]" /><button type="button" onClick={copyCode} disabled={!payment.pix_copy_paste || expired} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#168c45] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#117239] disabled:cursor-not-allowed disabled:bg-slate-300">{copied ? <Check size={18} /> : <Copy size={18} />}{copied ? "Código copiado" : "Copiar código PIX"}</button><p aria-live="polite" className="mt-2 text-center text-[11px] text-slate-400">Após pagar, aguarde a confirmação automática nesta página.</p></div>
     </div>
     {expired ? <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Este código atingiu o prazo informado pela operadora.</strong> Não tente pagá-lo. Fale com o atendimento para emitir um novo pagamento.</p> : null}
   </article>;
