@@ -22,6 +22,11 @@ export async function GET(request: Request) {
   return NextResponse.json({ ...result, products: result.products.slice(0, limit) }, {
     // Netlify's edge cache can collapse query-string variants for this route.
     // Search responses must never be shared between different terms.
-    headers: { "Cache-Control": "private, no-store, max-age=0", Vary: "Accept-Encoding" },
+    headers: {
+      "Cache-Control": "private, no-store, max-age=0",
+      "Netlify-CDN-Cache-Control": "no-store",
+      "Netlify-Vary": "query=q|page|sort|limit",
+      Vary: "Accept-Encoding",
+    },
   });
 }
