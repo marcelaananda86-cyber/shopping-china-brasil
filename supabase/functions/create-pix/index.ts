@@ -220,6 +220,15 @@ async function synchronizePendingPayments(service: ServiceClient, orderId: strin
         headers: { "X-API-Key": blackcatKey! },
       });
       const result = await response.json() as JsonObject;
+      if (response.status === 404 && result.success === false) {
+        // A transação não existe para a chave ativa. Isso acontece após uma
+        // troca de conta BlackCat; o QR antigo não deve continuar no checkout.
+        const { error: updateError } = await service.from("order_payments").update({
+          status: "cancelled",
+        }).eq("provider_transaction_id", transactionId).eq("order_id", orderId);
+        if (!updateError) changed = true;
+        continue;
+      }
       const data = asObject(result.data);
       if (!response.ok || result.success !== true || String(data.transactionId ?? "") !== transactionId) continue;
       const status = mapStatus(String(data.status ?? "PENDING"));
