@@ -163,6 +163,7 @@ export async function GET() {
       product.gtin ? `<g:gtin>${xml(product.gtin)}</g:gtin>` : "",
       product.mpn ? `<g:mpn>${xml(product.mpn)}</g:mpn>` : "",
       product.google_product_category ? `<g:google_product_category>${xml(product.google_product_category)}</g:google_product_category>` : "",
+      `<g:custom_label_0>${product.price_cents <= 50_000 ? "ate_500" : "acima_500"}</g:custom_label_0>`,
       !product.gtin && !product.mpn ? "<g:identifier_exists>no</g:identifier_exists>" : "",
       ...(product.additional_image_urls ?? []).slice(0, 10).map((_, index) =>
         `<g:additional_image_link>${xml(merchantImageUrl(product.id, index + 1))}</g:additional_image_link>`
