@@ -29,7 +29,10 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   verification: {
-    google: "-cSCqvJMcq5wJalQIyPvlGqIJRrfctH37SfrIPUhwMI",
+    google: [
+      "-cSCqvJMcq5wJalQIyPvlGqIJRrfctH37SfrIPUhwMI",
+      "7IkcH9OKqV-9PIyLul7n7Uj0o4qrFjrCw4JJRxMkr_E",
+    ],
   },
   icons: {
     icon: "/assets/shopping-china/logo-mark.webp",
